@@ -25,7 +25,7 @@
 
 ```bash
 # 1. 저장소 클론 또는 ZIP 다운로드
-git clone https://github.com/your-org/k3s-rancher-autosetup.git
+git clone https://github.com/tracer999/k3s_rancher_autosetup
 cd k3s-rancher-autosetup
 
 # 2. 설치 스크립트 실행

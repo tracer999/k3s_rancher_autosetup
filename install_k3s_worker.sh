@@ -11,15 +11,22 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
+# curl 설치 여부 확인
+if ! command -v curl >/dev/null 2>&1; then
+  echo "❌ 'curl' 명령어가 없습니다. 아래 명령어로 먼저 설치해주세요:"
+  echo "    sudo apt update && sudo apt install -y curl"
+  exit 1
+fi
+
 echo ""
 echo "[1/2] k3s 에이전트 설치 중..."
 curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$TOKEN sh -
 
 echo ""
 echo "[2/2] 서비스 상태 확인:"
-systemctl status k3s-agent --no-pager
+systemctl status k3s-agent --no-pager || echo "⚠️ k3s-agent 서비스가 아직 생성되지 않았거나 실패했습니다."
 
 echo ""
-echo "✅ 워커 노드가 마스터에 정상적으로 조인되었습니다."
-echo "🔁 마스터에서 'kubectl get nodes'로 등록 여부를 확인하세요."
-echo "⚠️ 설치 후 마스터에서 'kubectl get nodes' 명령어로 노드 상태를 확인하세요."
+echo "✅ 워커 노드 설치 완료. 마스터에서 'kubectl get nodes'로 노드가 조인되었는지 확인하세요."
+echo "⚠️ k3s-agent 서비스가 실패한 경우, 'sudo journalctl -u k3s-agent -f'로 로그를 확인하세요."
+echo "⚠️ 마스터 노드에서 'kubectl get nodes' 명령어로 노드 상태를 확인하세요."

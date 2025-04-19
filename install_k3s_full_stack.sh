@@ -18,9 +18,16 @@ if [[ "$mode" == "1" ]]; then
   echo "[3/7] Helm 설치"
   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-  echo "[4/7] kubectl 설정"
+
+  echo "[4/7] kubeconfig 설정 (모든 사용자 접근 허용)"
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-  echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+  echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' | sudo tee -a /etc/profile /etc/bash.bashrc > /dev/null
+  sudo chmod +r /etc/rancher/k3s/k3s.yaml
+  echo '✅ 모든 사용자에 대해 KUBECONFIG 환경변수 및 권한 설정 완료'
+
+
+
+
 
   echo "[5/7] cert-manager 설치"
   kubectl create namespace cattle-system --dry-run=client -o yaml | kubectl apply -f -

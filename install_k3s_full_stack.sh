@@ -55,7 +55,7 @@ if [[ "$mode" == "1" ]]; then
   echo "➡ Rancher 접속: http://<마스터 서버 IP>:<노드포트>"
   echo "서버 주소: $(hostname -I | awk '{print $1}')"
   echo "Join Token:"
-  sudo cat /var/lib/rancher/k3s/server/node-token
+  sudo cat /var/lib/rancher/k3s/server/node-token"
 
 elif [[ "$mode" == "2" ]]; then
   echo "🔗 워커 노드 설치 시작..."
@@ -89,11 +89,16 @@ EOF
   curl -sfL https://get.k3s.io | K3S_URL=https://$master_ip:6443 K3S_TOKEN=$token sh -
 
   echo "[4/6] k3s-agent 재시작"
-  sudo systemctl restart k3s-agent
+  if systemctl list-units --type=service | grep -q k3s-agent; then
+    sudo systemctl restart k3s-agent
+    echo "✅ k3s-agent 재시작 완료"
+  else
+    echo "⚠️ k3s-agent 서비스가 존재하지 않아 재시작을 건너뜁니다."
+  fi
 
   echo "[5/6] 노드 연결 대기 및 확인 (5초 대기 후 확인)"
   sleep 5
-  sudo k3s kubectl get nodes
+  sudo k3s kubectl get nodes || echo "⚠️ 마스터와의 연결을 확인하세요."
 
   echo "[6/6] 설치 완료 메시지"
   echo "✅ 워커 노드 설치 완료 및 레지스트리 연동 (선택 적용)"
@@ -103,3 +108,4 @@ else
   echo "❌ 잘못된 선택입니다. 1 또는 2를 입력하세요."
   exit 1
 fi
+echo "🎉 k3s 클러스터 구성 완료"

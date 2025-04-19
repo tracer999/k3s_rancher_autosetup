@@ -63,29 +63,40 @@ elif [[ "$mode" == "2" ]]; then
   read -p "마스터 노드의 IP 입력: " master_ip
   read -p "Join 토큰 입력: " token
 
-  echo "[1/4] registries.yaml 설정"
-  sudo mkdir -p /etc/rancher/k3s
-  cat <<EOF | sudo tee /etc/rancher/k3s/registries.yaml > /dev/null
+  echo "➕ 로컬 레지스트리 연동 여부 (y/n)?"
+  read -p "(기본값: n): " use_registry
+
+  if [[ "$use_registry" == "y" || "$use_registry" == "Y" ]]; then
+    echo "[1/6] registries.yaml 설정"
+    sudo mkdir -p /etc/rancher/k3s
+    cat <<EOF | sudo tee /etc/rancher/k3s/registries.yaml > /dev/null
 mirrors:
   "${master_ip}:5000":
     endpoint:
       - "http://${master_ip}:5000"
 EOF
-  echo "✅ /etc/rancher/k3s/registries.yaml 생성 완료"
+    echo "✅ /etc/rancher/k3s/registries.yaml 생성 완료"
+  else
+    echo "⚠️ registries.yaml 설정을 건너뜁니다."
+  fi
 
-  echo "[2/4] 로컬 스토리지 경로 생성 (PVC 오류 방지)"
+  echo "[2/6] 로컬 스토리지 경로 생성 (PVC 오류 방지)"
   sudo mkdir -p /var/lib/rancher/k3s/storage
   sudo chmod -R 777 /var/lib/rancher/k3s/storage
   echo "✅ /var/lib/rancher/k3s/storage 경로 생성 완료"
 
-  echo "[3/4] k3s 에이전트 설치"
+  echo "[3/6] k3s 에이전트 설치"
   curl -sfL https://get.k3s.io | K3S_URL=https://$master_ip:6443 K3S_TOKEN=$token sh -
 
-  echo "[4/4] k3s-agent 재시작"
+  echo "[4/6] k3s-agent 재시작"
   sudo systemctl restart k3s-agent
 
-  echo ""
-  echo "✅ 워커 노드 설치 완료 및 마스터 레지스트리 연동 설정 완료"
+  echo "[5/6] 노드 연결 대기 및 확인 (5초 대기 후 확인)"
+  sleep 5
+  sudo k3s kubectl get nodes
+
+  echo "[6/6] 설치 완료 메시지"
+  echo "✅ 워커 노드 설치 완료 및 레지스트리 연동 (선택 적용)"
   echo "💡 Rancher에서 클러스터 상태 확인 가능"
 
 else

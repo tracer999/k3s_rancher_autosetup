@@ -63,8 +63,3 @@ DELETE FROM `users`;
 INSERT INTO `users` (`id`, `kakao_id`, `nickname`, `email`, `profile_image`, `created_at`) VALUES
 	(1, 4221796599, 'SH', 'sh.yang@kakao.com', NULL, '2025-04-18 02:37:01');
 
-/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;

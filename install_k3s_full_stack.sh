@@ -18,16 +18,11 @@ if [[ "$mode" == "1" ]]; then
   echo "[3/7] Helm 설치"
   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-
   echo "[4/7] kubeconfig 설정 (모든 사용자 접근 허용)"
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
   echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' | sudo tee -a /etc/profile /etc/bash.bashrc > /dev/null
   sudo chmod +r /etc/rancher/k3s/k3s.yaml
   echo '✅ 모든 사용자에 대해 KUBECONFIG 환경변수 및 권한 설정 완료'
-
-
-
-
 
   echo "[5/7] cert-manager 설치"
   kubectl create namespace cattle-system --dry-run=client -o yaml | kubectl apply -f -
@@ -63,15 +58,27 @@ elif [[ "$mode" == "2" ]]; then
   read -p "마스터 노드의 IP 입력: " master_ip
   read -p "Join 토큰 입력: " token
 
-  echo "[1/2] k3s 에이전트 설치"
+  echo "[1/3] registries.yaml 설정"
+  sudo mkdir -p /etc/rancher/k3s
+  cat <<EOF | sudo tee /etc/rancher/k3s/registries.yaml > /dev/null
+mirrors:
+  "${master_ip}:5000":
+    endpoint:
+      - "http://${master_ip}:5000"
+EOF
+  echo "✅ /etc/rancher/k3s/registries.yaml 생성 완료"
+
+  echo "[2/3] k3s 에이전트 설치"
   curl -sfL https://get.k3s.io | K3S_URL=https://$master_ip:6443 K3S_TOKEN=$token sh -
 
+  echo "[3/3] k3s-agent 재시작"
+  sudo systemctl restart k3s-agent
+
   echo ""
-  echo "✅ 워커 노드 설치 완료"
+  echo "✅ 워커 노드 설치 완료 및 마스터 레지스트리 연동 설정 완료"
   echo "💡 Rancher에서 클러스터 상태 확인 가능"
 
 else
   echo "❌ 잘못된 선택입니다. 1 또는 2를 입력하세요."
   exit 1
 fi
-

@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-
 echo "🧩 k3s 클러스터 구성 스크립트"
 echo "1) 마스터 노드 설치"
 echo "2) 워커 노드 설치"
@@ -23,7 +22,7 @@ if [[ "$mode" == "1" ]]; then
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
   echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' | sudo tee -a /etc/profile /etc/bash.bashrc > /dev/null
   sudo chmod +r /etc/rancher/k3s/k3s.yaml
-  echo '✅ 모든 사용자에 대해 KUBECONFIG 환경변수 및 권한 설정 완료'
+  echo "✅ 모든 사용자에 대해 KUBECONFIG 환경변수 및 권한 설정 완료"
 
   echo "[5/8] 로컬 스토리지 경로 생성 (PVC 오류 방지)"
   sudo mkdir -p /var/lib/rancher/k3s/storage
@@ -56,15 +55,15 @@ if [[ "$mode" == "1" ]]; then
   echo "➡ Rancher 접속: http://<마스터 서버 IP>:<노드포트>"
   echo "서버 주소: $(hostname -I | awk '{print $1}')"
   echo "Join Token:"
-  sudo cat /var/lib/rancher/k3s/server/node-token"
+  sudo cat /var/lib/rancher/k3s/server/node-token
 
 elif [[ "$mode" == "2" ]]; then
-  echo "워커 노드 설치 시작..."
+  echo "🔗 워커 노드 설치 시작..."
 
   read -p "마스터 노드의 IP 입력: " master_ip
   read -p "Join 토큰 입력: " token
 
-  echo "로컬 레지스트리 연동 여부 (y/n)?"
+  echo "➕ 로컬 레지스트리 연동 여부 (y/n)?"
   read -p "(기본값: n): " use_registry
 
   if [[ "$use_registry" == "y" || "$use_registry" == "Y" ]]; then
@@ -87,7 +86,7 @@ EOF
   echo "✅ /var/lib/rancher/k3s/storage 경로 생성 완료"
 
   echo "[3/6] k3s 에이전트 설치"
-  curl -sfL https://get.k3s.io | K3S_URL=https://$master_ip:6443 K3S_TOKEN=$token sh -
+  curl -sfL https://get.k3s.io | K3S_URL="https://$master_ip:6443" K3S_TOKEN="$token" sh -
 
   echo "[4/6] k3s-agent 재시작"
   if systemctl list-units --type=service | grep -q k3s-agent; then
@@ -109,4 +108,3 @@ else
   echo "❌ 잘못된 선택입니다. 1 또는 2를 입력하세요."
   exit 1
 fi
-echo "🎉 k3s 클러스터 구성 완료"

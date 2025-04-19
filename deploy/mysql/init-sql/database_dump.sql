@@ -1,18 +1,4 @@
--- --------------------------------------------------------
--- 호스트:                          ydata.co.kr
--- 서버 버전:                        10.6.21-MariaDB-0ubuntu0.22.04.2 - Ubuntu 22.04
--- 서버 OS:                        debian-linux-gnu
--- HeidiSQL 버전:                  12.10.0.7000
--- --------------------------------------------------------
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET NAMES utf8 */;
-/*!50503 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
 -- blog_db 데이터베이스 구조 내보내기
@@ -82,12 +68,3 @@ INSERT INTO `users` (`id`, `kakao_id`, `nickname`, `email`, `profile_image`, `cr
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
-
-
--- 사용자 인증 방식 변경 (자동 추가됨)
-ALTER USER 'bloguser'@'%' IDENTIFIED WITH mysql_native_password BY 'blogpass';
-
--- 사용자 계정 생성 및 인증 방식 지정 (자동 추가됨)
-CREATE USER IF NOT EXISTS 'bloguser'@'%' IDENTIFIED WITH mysql_native_password BY 'blogpass';
-GRANT ALL PRIVILEGES ON blog_db.* TO 'bloguser'@'%';
-FLUSH PRIVILEGES;

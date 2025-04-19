@@ -96,9 +96,8 @@ EOF
     echo "⚠️ k3s-agent 서비스가 존재하지 않아 재시작을 건너뜁니다."
   fi
 
-  echo "[5/6] 노드 연결 대기 및 확인 (5초 대기 후 확인)"
-  sleep 5
-  sudo k3s kubectl get nodes || echo "⚠️ 마스터와의 연결을 확인하세요."
+  echo "[5/6] 노드가 마스터에 등록되었는지 확인은 마스터에서 아래 명령으로 수행하세요:"
+  echo "    kubectl get nodes -o wide"
 
   echo "[6/6] 설치 완료 메시지"
   echo "✅ 워커 노드 설치 완료 및 레지스트리 연동 (선택 적용)"

@@ -59,12 +59,12 @@ if [[ "$mode" == "1" ]]; then
   sudo cat /var/lib/rancher/k3s/server/node-token"
 
 elif [[ "$mode" == "2" ]]; then
-  echo "🔗 워커 노드 설치 시작..."
+  echo "워커 노드 설치 시작..."
 
   read -p "마스터 노드의 IP 입력: " master_ip
   read -p "Join 토큰 입력: " token
 
-  echo "➕ 로컬 레지스트리 연동 여부 (y/n)?"
+  echo "로컬 레지스트리 연동 여부 (y/n)?"
   read -p "(기본값: n): " use_registry
 
   if [[ "$use_registry" == "y" || "$use_registry" == "Y" ]]; then

@@ -1,0 +1,17 @@
+# 불필요한 디렉토리
+.git
+node_modules
+__pycache__/
+*.log
+.env
+
+# IDE 설정
+.vscode/
+.idea/
+
+# 빌드 산출물
+*.class
+*.jar
+*.zip
+
+

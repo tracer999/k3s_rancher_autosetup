@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# 현재 스크립트 기준으로 deploy/mysql 디렉토리로 이동
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/deploy/mysql"
+
 # ✅ kubeconfig 설정 (root로도 사용 가능하도록)
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
@@ -31,6 +35,7 @@ echo "[2/6] 초기 SQL(database_dump.sql)로 ConfigMap 재생성"
 kubectl delete configmap mysql-initdb -n $NAMESPACE --ignore-not-found
 if [ ! -f "$INIT_SQL_PATH" ]; then
   echo "❌ 파일이 존재하지 않습니다: $INIT_SQL_PATH"
+  echo "   현재 작업 디렉토리: $(pwd)"
   exit 1
 fi
 kubectl create configmap mysql-initdb \

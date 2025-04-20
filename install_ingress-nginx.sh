@@ -22,7 +22,12 @@ if [[ -z "$EXTERNAL_PORT" ]]; then
   exit 1
 fi
 
-### 중복 도메인만 확인 (포트 중복 허용)
+### 도메인 기반 이름 생성
+SANITIZED_DOMAIN="${DOMAIN_NAME//./-}"
+SECRET_NAME="tls-${SANITIZED_DOMAIN}"
+INGRESS_NAME="ingress-${EXTERNAL_PORT}-${SANITIZED_DOMAIN}"
+
+### 중복 도메인 확인
 RECORD_FILE="./deploy/ingress_records.txt"
 mkdir -p ./deploy
 touch "$RECORD_FILE"
@@ -55,9 +60,9 @@ else
   echo "✅ Ingress Controller가 이미 설치되어 있습니다."
 fi
 
-### Secret 등록
-kubectl delete secret tls-$EXTERNAL_PORT --ignore-not-found -n production
-kubectl create secret tls tls-$EXTERNAL_PORT \
+### Secret 등록 (도메인별 이름)
+kubectl delete secret $SECRET_NAME --ignore-not-found -n production
+kubectl create secret tls $SECRET_NAME \
   --cert="$TLS_CRT" \
   --key="$TLS_KEY" \
   -n production
@@ -67,7 +72,7 @@ cat <<EOF | kubectl apply -n production -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-$EXTERNAL_PORT-$DOMAIN_NAME
+  name: $INGRESS_NAME
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
@@ -75,7 +80,7 @@ spec:
   tls:
   - hosts:
     - $DOMAIN_NAME
-    secretName: tls-$EXTERNAL_PORT
+    secretName: $SECRET_NAME
   rules:
   - host: $DOMAIN_NAME
     http:
@@ -90,9 +95,9 @@ spec:
 EOF
 
 ### 기록 저장
-echo "DOMAIN=$DOMAIN_NAME PORT=$EXTERNAL_PORT URL=$SERVICE_URL" >> "$RECORD_FILE"
+echo "DOMAIN=$DOMAIN_NAME PORT=$EXTERNAL_PORT SECRET=$SECRET_NAME INGRESS=$INGRESS_NAME URL=$SERVICE_URL" >> "$RECORD_FILE"
 
 echo ""
-echo "✅ MetalLB + Ingress 설정 완료"
+echo "✅ Ingress 설정 완료"
 echo "➡️ 외부 접속: https://$DOMAIN_NAME:$EXTERNAL_PORT"
 echo "➡️ 내부 라우팅 대상: $SERVICE_URL"

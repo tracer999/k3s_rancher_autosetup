@@ -1,0 +1,1 @@
+DOMAIN=blog.ydata.co.kr PORT=443 SECRET=tls-blog-ydata-co-kr INGRESS=ingress-443-blog-ydata-co-kr URL=http://blog-tomcat.production.svc.cluster.local:8080

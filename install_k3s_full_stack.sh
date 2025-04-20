@@ -10,7 +10,7 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 if [[ "$mode" == "1" ]]; then
   echo "🛠 마스터 노드 설치 시작..."
-  read -p "Rancher에서 사용할 도메인 입력 (예: rancher.ydata.co.kr): " RANCHER_DOMAIN
+  read -p "Rancher에서 사용할 도메인 입력 (예: rancher.sample.com): " RANCHER_DOMAIN
 
   echo "[1/11] 시스템 업데이트 및 패키지 설치"
   sudo apt update && sudo apt install -y curl wget apt-transport-https ca-certificates gnupg lsb-release jq

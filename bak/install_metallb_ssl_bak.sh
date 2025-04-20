@@ -22,17 +22,7 @@ if [[ -z "$EXTERNAL_PORT" ]]; then
   exit 1
 fi
 
-### 중복 도메인만 확인 (포트 중복 허용)
-RECORD_FILE="./deploy/ingress_records.txt"
-mkdir -p ./deploy
-touch "$RECORD_FILE"
-
-if grep -qE "DOMAIN=$DOMAIN_NAME\b" "$RECORD_FILE"; then
-  echo "❌ 이미 등록된 도메인입니다: $DOMAIN_NAME"
-  exit 1
-fi
-
-### 인증서 확인
+### 현재 가지고 있는 인증서 파일
 CERT_DIR="$(cd "$(dirname "$0")" && pwd)/certs"
 TLS_CRT="$CERT_DIR/server.all.crt.pem"
 TLS_KEY="$CERT_DIR/server.key.pem"
@@ -42,7 +32,13 @@ if [[ ! -f "$TLS_CRT" || ! -f "$TLS_KEY" ]]; then
   exit 1
 fi
 
-### Ingress Controller 설치 확인
+### 포트 충돌 확인
+if ss -tuln | grep -q ":$EXTERNAL_PORT\\s"; then
+  echo "❌ 포트 $EXTERNAL_PORT 는 이미 사용 중입니다."
+  exit 1
+fi
+
+### Ingress Controller 확인 및 설치
 if ! kubectl get pods -A | grep -q 'ingress-nginx.*controller'; then
   echo "⚙️ Ingress Controller가 없으므로 설치합니다..."
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml
@@ -67,7 +63,7 @@ cat <<EOF | kubectl apply -n production -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-$EXTERNAL_PORT-$DOMAIN_NAME
+  name: ingress-$EXTERNAL_PORT
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
@@ -86,13 +82,9 @@ spec:
           service:
             name: $(echo $SERVICE_URL | cut -d. -f1 | cut -d/ -f3)
             port:
-              number: $(echo $SERVICE_URL | awk -F':' '{print $NF}')
+              number: 8080
 EOF
 
-### 기록 저장
-echo "DOMAIN=$DOMAIN_NAME PORT=$EXTERNAL_PORT URL=$SERVICE_URL" >> "$RECORD_FILE"
-
-echo ""
-echo "✅ MetalLB + Ingress 설정 완료"
+echo "\n✅ MetalLB + Ingress 설정 완료"
 echo "➡️ 외부 접속: https://$DOMAIN_NAME:$EXTERNAL_PORT"
 echo "➡️ 내부 라우팅 대상: $SERVICE_URL"

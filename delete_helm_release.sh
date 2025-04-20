@@ -34,3 +34,13 @@ helm uninstall "$RELEASE_NAME" -n "$RELEASE_NS"
 
 echo ""
 echo "✅ Helm 릴리스 '$RELEASE_NAME' 삭제 완료!"
+
+# PVC 확인 및 삭제
+echo ""
+echo "🧹 PVC 자동 정리 중 (라벨: app.kubernetes.io/instance=$RELEASE_NAME)..."
+kubectl delete pvc -n "$RELEASE_NS" -l app.kubernetes.io/instance="$RELEASE_NAME" || {
+  echo "⚠️ PVC 삭제 중 오류가 발생했거나 존재하지 않습니다."
+}
+
+echo ""
+echo "✅ 정리 완료!"

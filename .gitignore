@@ -1,2 +1,3 @@
 *.war
 registry_ip
+*.pem

@@ -62,19 +62,47 @@
 ./delete_tomcat.sh
 ```
 
-### 4. **Ingress + MetalLB + HTTPS 도메인 연결**
+### 4. **Ingress + HTTPS 도메인 연결 설정**
 ```bash
-./install_metallb_ssl.sh
+./install_ingress-nginx.sh
 ```
-- 내부 Service 주소 + 도메인 + 포트 입력
-- 인증서는 `/certs/server.all.crt.pem`, `/certs/server.key.pem` 사용
-- `Ingress + Secret + Routing` 모두 자동 설정
-- 포트 중복 없이 여러 도메인 구성 가능 (`443`, `8443` 등)
 
-삭제:
-```bash
-./delete_metallb_ssl.sh
+- **내부 서비스 주소 + 도메인명 + 외부 포트**를 입력받아 Ingress 설정을 자동 구성합니다.
+- 예시 입력:
+  - 내부 서비스: `http://blog-tomcat.production.svc.cluster.local:8080`
+  - 도메인: `blog.sample.com`
+  - 포트: `443`
+- 인증서는 다음 경로의 파일을 사용합니다:
+  - `certs/server.all.crt.pem` (인증서 파일)
+  - `certs/server.key.pem` (개인키 파일)
+- Ingress Controller(`ingress-nginx`)가 설치되지 않은 경우 자동 설치됩니다.
+- 입력한 도메인 정보를 기반으로 다음 리소스가 생성됩니다:
+  - TLS Secret: `tls-<도메인>`
+  - Ingress: `ingress-<포트>-<도메인>`
+
+📄 등록된 정보는 `deploy/ingress_records.txt`에 자동 저장됩니다. 저장 형식은 아래와 같습니다:
 ```
+DOMAIN=blog.sample.com PORT=443 SECRET=tls-blog-blog-sample-com INGRESS=ingress-443-blog-blog-sample-com URL=http://blog-tomcat.production.svc.cluster.local:8080
+```
+
+- 동일한 포트(`443`)에서도 여러 도메인을 등록할 수 있으며, 와일드카드 인증서를 사용할 수 있습니다.
+
+---
+
+### 🔧 Ingress 설정 삭제
+```bash
+./delete_ingress-nginx.sh
+```
+
+- 삭제할 **도메인명**을 입력하면 해당 도메인에 연결된 Ingress 및 TLS Secret 리소스를 자동 삭제합니다.
+- 삭제된 도메인은 `deploy/ingress_records.txt`에서도 자동으로 제거됩니다.
+
+예시 실행:
+```
+삭제할 도메인 입력 (예: blog.sample.com): blog.sample.com
+```
+
+> ✅ `ingress_records.txt`를 기반으로 등록/삭제를 관리하므로, Ingress 설정을 시각적으로 추적하고 유지하기 편리합니다.
 
 ---
 
@@ -101,8 +129,8 @@ install_k3s_full_stack_v2.sh       👉 전체 구성 설치 (마스터/워커)
 uninstall_k3s_full_stack_v2.sh     👉 전체 구성 삭제
 install_mysql8.sh                  👉 MySQL 배포
 install_tomcat.sh                  👉 Tomcat 다중 배포
-install_metallb_ssl.sh             👉 Ingress + 인증서 + 포트 연동
-delete_metallb_ssl.sh              👉 Ingress 구성 삭제
+install_ingress-nginx.sh            👉 Ingress + 인증서 + 포트 연동
+delete_ingress-nginx.sh              👉 Ingress 구성 삭제
 delete_tomcat.sh                   👉 Tomcat 일괄 삭제
 delete_helm_release.sh             👉 Helm 설치 제거
 delete_k8s_service.sh              👉 수동 리소스 제거
@@ -119,7 +147,7 @@ delete_k8s_service.sh              👉 수동 리소스 제거
 
 ## 🌐 Rancher Web UI 접속
 
-- 도메인 입력 시 `https://rancher.ydata.co.kr:443` 과 같이 HTTPS로 접근
+- 도메인 입력 시 `https://rancher.sample.com` 과 같이 HTTPS로 접근
 - 초기 ID: `admin`, 비밀번호: `admin`
 - 기능:
   - K8s 리소스 배포/삭제/모니터링
@@ -130,6 +158,6 @@ delete_k8s_service.sh              👉 수동 리소스 제거
 
 ## 🙋‍♂️ 기타 안내
 
-- 인증서 없이도 설치 가능 → 추후 `install_metallb_ssl.sh`로 연결
+- 인증서 없이도 설치 가능 → 추후 `install_ingress-nginx.sh`로 연결
 - 동일한 WAR 파일을 여러 서버에 손쉽게 배포
 - NodePort 서비스는 테스트용, 운영은 HTTPS(443) 사용 권장

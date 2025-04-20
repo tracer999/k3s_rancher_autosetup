@@ -1,3 +1,5 @@
 *.war
 registry_ip
 *.pem
+setup_insecure_registry.sh
+deploy/ingress_records.txt

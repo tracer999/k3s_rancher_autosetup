@@ -90,6 +90,19 @@ if [[ "$mode" == "1" ]]; then
       registry:2
   fi
 
+  echo "[11+] Docker insecure registry 설정"
+  sudo mkdir -p /etc/docker
+
+  cat <<EOF | sudo tee /etc/docker/daemon.json > /dev/null
+  {
+    "insecure-registries": ["$REGISTRY_IP:5000"]
+  }
+  EOF
+
+  sudo systemctl restart docker
+
+
+
   REGISTRY_IP=$(hostname -I | awk '{print $1}')
   echo "$REGISTRY_IP" > "$SCRIPT_DIR/registry_ip"
 

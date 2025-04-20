@@ -10,7 +10,6 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 if [[ "$mode" == "1" ]]; then
   echo "🛠 마스터 노드 설치 시작..."
-
   read -p "Rancher에서 사용할 도메인 입력 (예: rancher.ydata.co.kr): " RANCHER_DOMAIN
 
   echo "[1/11] 시스템 업데이트 및 패키지 설치"
@@ -79,9 +78,15 @@ if [[ "$mode" == "1" ]]; then
   echo ""
   echo "✅ Rancher 설치 완료!"
   echo "🌐 Rancher NodePort 주소: http://$REGISTRY_IP:<NodePort>"
-  echo "🌐 향후 도메인 주소: https://$RANCHER_DOMAIN (install_metallb_ssl.sh 설정 필요)"
+  echo "🌐 향후 도메인 주소: https://$RANCHER_DOMAIN (install_metallb_ssl.sh로 인증서 연동 필요)"
   echo "👤 초기 ID: admin / 비밀번호: admin"
   echo "📦 Registry: http://$REGISTRY_IP:5000"
+  echo ""
+
+  echo "🔑 워커 노드 연결 정보"
+  echo "📌 마스터 IP: $REGISTRY_IP"
+  echo "🔐 Join Token:"
+  sudo cat /var/lib/rancher/k3s/server/node-token
 
 elif [[ "$mode" == "2" ]]; then
   echo "🔗 워커 노드 설치 시작..."
@@ -112,7 +117,6 @@ EOF
   fi
 
   echo "[5/5] 설치 완료!"
-
 else
   echo "❌ 잘못된 선택입니다. 1 또는 2를 입력하세요."
   exit 1

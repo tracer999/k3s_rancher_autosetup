@@ -91,6 +91,7 @@ elif [[ "$mode" == "2" ]]; then
 
   read -p "마스터 노드의 IP 입력: " master_ip
   read -p "Join 토큰 입력: " token
+  echo "$master_ip" > ~/registry_ip
 
   echo "[1/5] 로컬 스토리지 경로 생성"
   sudo mkdir -p /var/lib/rancher/k3s/storage

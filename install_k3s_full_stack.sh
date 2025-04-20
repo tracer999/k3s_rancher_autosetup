@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "🤩 k3s 클러스터 구성 스크립트"
 echo "1) 마스터 노드 설치"
 echo "2) 워커 노드 설치"
@@ -73,7 +75,7 @@ if [[ "$mode" == "1" ]]; then
   fi
 
   REGISTRY_IP=$(hostname -I | awk '{print $1}')
-  echo "$REGISTRY_IP" > ~/registry_ip
+  echo "$REGISTRY_IP" > "$SCRIPT_DIR/registry_ip"
 
   echo ""
   echo "✅ Rancher 설치 완료!"
@@ -92,7 +94,7 @@ elif [[ "$mode" == "2" ]]; then
   echo "🔗 워커 노드 설치 시작..."
   read -p "마스터 노드 IP: " master_ip
   read -p "Join 토큰: " token
-  echo "$master_ip" > ~/registry_ip
+  echo "$master_ip" > "$SCRIPT_DIR/registry_ip"
 
   echo "[1/5] 로컬 스토리지 생성"
   sudo mkdir -p /var/lib/rancher/k3s/storage
@@ -117,6 +119,7 @@ EOF
   fi
 
   echo "[5/5] 설치 완료!"
+
 else
   echo "❌ 잘못된 선택입니다. 1 또는 2를 입력하세요."
   exit 1

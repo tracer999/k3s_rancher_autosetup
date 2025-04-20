@@ -23,25 +23,50 @@ fi
 if [[ "$mode" == "1" ]]; then
   echo -e "${GREEN}🧨 마스터 노드 클러스터 전체 삭제 시작...${NC}"
 
-  # 모든 워커 노드 강제 제거
+  echo "📌 KUBECONFIG 설정"
+  export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+  TMP_KUBECONFIG="/tmp/k3s.yaml"
+  cp "$KUBECONFIG" "$TMP_KUBECONFIG"
+
   echo "🔍 연결된 노드 목록 확인 및 제거"
-  nodes=$(sudo kubectl get nodes --no-headers | awk '{print $1}')
+  nodes=$(kubectl get nodes --no-headers | awk '{print $1}' || true)
   for node in $nodes; do
     echo "❌ 노드 제거: $node"
-    sudo kubectl delete node "$node" --ignore-not-found || true
+    kubectl delete node "$node" --ignore-not-found || true
   done
 
-  # k3s, Rancher, Ingress, Registry 등 관련 서비스 중지 및 삭제
+  echo "🧹 Helm 리소스 제거"
+  helm list -A -q | xargs -r -I {} helm uninstall {} -n $(kubectl get helmrelease -A -o jsonpath='{range .items[*]}{.metadata.namespace}{"\n"}{end}' | sort -u | grep -v '^$') || true
+
+  echo "🧹 네임스페이스 삭제"
+  kubectl delete ns cattle-system production ingress-nginx --ignore-not-found || true
+
   echo "🧹 k3s 서비스 제거"
   sudo systemctl stop k3s || true
   sudo /usr/local/bin/k3s-uninstall.sh || true
 
   echo "🧹 Registry 컨테이너 제거"
   docker rm -f registry || true
-  sudo rm -rf /opt/registry /var/lib/rancher/k3s /etc/rancher /etc/kubernetes ~/.kube ~/.config/k3s || true
+  sudo rm -rf /opt/registry
 
-  echo "🧹 남은 k3s 디렉토리 정리"
-  sudo rm -rf /var/lib/kubelet /var/lib/etcd /etc/cni /opt/cni /run/flannel /run/k3s /etc/systemd/system/k3s* || true
+  echo "🧹 관련 디렉토리 정리"
+  sudo rm -rf \
+    /var/lib/rancher/k3s \
+    /etc/rancher \
+    /etc/kubernetes \
+    /var/lib/kubelet \
+    /var/lib/etcd \
+    /etc/cni \
+    /opt/cni \
+    /run/flannel \
+    /run/k3s \
+    ~/.kube \
+    ~/.config/k3s \
+    /etc/systemd/system/k3s* \
+    /usr/local/bin/k3s \
+    ~/registry_ip \
+    ~/ingress_records.txt \
+    ./deploy/ingress_records.txt
 
   echo -e "${GREEN}✅ 마스터 노드 관련 파일 및 리소스 모두 삭제 완료${NC}"
 
@@ -53,7 +78,16 @@ elif [[ "$mode" == "2" ]]; then
   sudo /usr/local/bin/k3s-agent-uninstall.sh || true
 
   echo "🧹 디렉토리 정리"
-  sudo rm -rf /var/lib/rancher/k3s /etc/rancher /etc/kubernetes /etc/cni /opt/cni /run/flannel /run/k3s || true
+  sudo rm -rf \
+    /var/lib/rancher/k3s \
+    /etc/rancher \
+    /etc/kubernetes \
+    /etc/cni \
+    /opt/cni \
+    /run/flannel \
+    /run/k3s \
+    /usr/local/bin/k3s-agent \
+    ~/registry_ip
 
   echo -e "${GREEN}✅ 워커 노드 관련 리소스 삭제 완료${NC}"
 

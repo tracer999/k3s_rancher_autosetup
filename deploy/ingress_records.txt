@@ -1,1 +1,0 @@
-DOMAIN=blog.ydata.co.kr PORT=443 URL=http://blog-tomcat.production.svc.cluster.local:8080

@@ -1,1 +1,0 @@
-DOMAIN=mail.daikenec.com SECRET=tls-mail-daikenec-com INGRESS=ingress-mail-daikenec-com URL=http://blog-tomcat.production.svc.cluster.local:8080

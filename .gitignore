@@ -1,4 +1,5 @@
 *.war
+*.bak
 registry_ip
 *.pem
 setup_insecure_registry.sh

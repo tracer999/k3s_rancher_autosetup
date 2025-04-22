@@ -32,7 +32,7 @@ sudo ./install_k3s_full_stack.sh
 
 #### Input Example
 ```
-Enter domain for Rancher: rancher.ydata.co.kr
+Enter domain for Rancher: rancher.example.com
 ```
 
 #### Components

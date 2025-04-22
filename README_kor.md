@@ -32,7 +32,7 @@ sudo ./install_k3s_full_stack.sh
 
 #### 입력 예시
 ```
-Rancher에서 사용할 도메인 입력: rancher.ydata.co.kr
+Rancher에서 사용할 도메인 입력: rancher.dankook.ac.kr
 ```
 
 ### 2️⃣ 워커 노드 설치
@@ -102,7 +102,7 @@ sudo ./install_ingress-nginx.sh
 #### 입력 예시
 ```
 내부 서비스 주소: http://blog-tomcat.production.svc.cluster.local:8080
-도메인 입력: blog.example.com
+도메인 입력: blog.dankook.ac.kr
 ```
 
 ### 🗑️ 삭제 방법

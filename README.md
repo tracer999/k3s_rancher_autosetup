@@ -1,163 +1,134 @@
-# k3s Rancher 자동화 구성 - 3 Tier 환경
 
-이 저장소는 경량 쿠버네티스 `k3s` 기반으로 중소기업에서도 쉽게 사용할 수 있도록 설계된 3 Tier 웹 애플리케이션 인프라 자동화 구성 도구입니다.
+# k3s Rancher 자동화 구성 설명서
 
-## 구성 요소
-- `Tomcat 10` (Frontend Application)
-- `MySQL 8` (Backend Database)
-- `MetalLB` + `Ingress` (HTTPS 인증서 기반 외부 노출)
-- `Rancher` 웹 UI (k8s 리소스 관리)
+## 🚀 개요
 
----
+최근 소프트웨어 개발과 배포 환경은 전통적인 모놀리식 아키텍처(Monolithic Architecture)에서 마이크로서비스 아키텍처(Microservice Architecture, MSA)로 전환되고 있습니다. 이에 따라 운영 환경 역시 VM 기반에서 컨테이너 기반으로 변화하고 있으며, 이를 관리하기 위한 컨테이너 오케스트레이션 도구의 필요성이 증가하고 있습니다.
 
-## 🛠 설치 순서
+본 설명서는 복잡한 Kubernetes의 학습 곡선을 줄이고, 간편하게 클러스터 환경을 구축할 수 있도록 k3s를 기반으로 Rancher 및 관련 필수 구성 요소들을 자동화하여 설치하는 방법을 안내합니다.
 
-### 1. **k3s 클러스터 설치 (마스터 및 워커 노드)**
+## 📌 k3s 소개
+
+k3s는 Kubernetes의 경량화 버전으로, 다음과 같은 특징이 있습니다:
+- 설치가 쉽고 빠르며, 가벼운 리소스 사용
+- 단일 바이너리로 구성되어 복잡성 감소
+- Helm, Traefik, Containerd가 기본 내장
+
+## 📦 자동 설치 구성 흐름
+
+### 1️⃣ 마스터 노드 설치
+
+#### 설치 목적
+클러스터의 관리를 담당하는 마스터 노드를 구성하며, Rancher, Ingress Controller, Docker Registry 등 핵심 요소들을 자동 설치합니다.
+
+#### 실행 방법
 ```bash
-./install_k3s_full_stack_v2.sh
+sudo ./install_k3s_full_stack.sh
 ```
-- 마스터 설치 또는 워커 설치 중 선택 가능
-- Rancher 도메인 및 포트 입력 가능
-- Ingress Controller까지 자동 설치됨
 
-#### 마스터 노드 설치 시 구성 요소
-- `k3s`, `Helm`, `cert-manager`, `Ingress Controller`, `Rancher` 설치
-- Rancher는 입력한 도메인으로 Ingress를 통해 HTTPS 노출 가능
-- 로컬 Docker Registry 구성 (`5000` 포트)
-- 네임스페이스 생성: `production`, `cattle-system`
+#### 입력 예시
+```
+Rancher에서 사용할 도메인 입력: rancher.ydata.co.kr
+```
 
-#### 워커 노드 설치 시
-- 마스터 IP와 토큰을 입력받아 클러스터에 자동 연결
-- 로컬 Registry 미러 설정 `/etc/rancher/k3s/registries.yaml`
-- 원하는 수의 워커 노드에 반복 실행 가능
+#### 구성 요소
+| 단계 | 구성요소 | 상세 설명 |
+|------|-----------|-----------|
+| 1 | 시스템 패키지 설치 | curl, wget, jq 및 인증서 관리 도구 설치 |
+| 2 | k3s 설치 | 경량 쿠버네티스 엔진 |
+| 3 | Helm 설치 | Kubernetes 애플리케이션 관리를 위한 패키지 관리자 |
+| 4 | Kubeconfig 설정 | kubectl 명령어 사용 환경 설정 |
+| 5 | 로컬 스토리지 구성 | 로컬 스토리지 공간 설정 |
+| 6 | cert-manager 설치 | 자동 TLS 인증서 관리 |
+| 7 | Rancher 설치 | Kubernetes 관리용 웹 인터페이스 |
+| 8 | Rancher NodePort 설정 | 외부에서 접근 가능한 포트 설정 |
+| 9 | production 네임스페이스 생성 | 실제 서비스 배포용 네임스페이스 |
+| 10 | Ingress Controller 설치 | 클러스터 내부 서비스와 외부 연결 처리 |
+| 11 | Docker Registry 설치 | 내부 컨테이너 이미지 저장소 설치 (포트 5000) |
 
-### 2. **MySQL 8 배포**
+### 2️⃣ 워커 노드 설치
+
+#### 설치 목적
+마스터 노드와 연결하여 실제 서비스를 실행하는 노드를 구성합니다.
+
+#### 실행 방법
 ```bash
-./install_mysql8.sh
+sudo ./install_k3s_full_stack.sh
 ```
-- DB명, 사용자, 비밀번호, 서비스명을 입력
-- 초기 SQL: `deploy/mysql/init-sql/database_dump.sql`
-- Helm Chart(`bitnami/mysql`) 기반
-- 기본 노출 포트: `31060` (NodePort)
 
-삭제:
+#### 입력 예시
+```
+마스터 노드 IP: 192.168.1.100
+Join 토큰: K106a...::server:xxxxx
+```
+
+### 3️⃣ MySQL 8 배포
+
+#### 설치 목적
+애플리케이션 데이터를 저장할 MySQL 데이터베이스 서버 설치 및 설정입니다.
+
+#### 실행 방법
 ```bash
-./delete_helm_release.sh
+sudo ./install_mysql8.sh
 ```
 
-### 3. **Tomcat 인스턴스 배포**
+#### 입력 예시
+```
+생성할 DB 이름: mydb
+DB 사용자 이름: user01
+DB 비밀번호: yourpassword
+MySQL 서비스 이름: mysql-svc
+```
+
+### 4️⃣ Tomcat10 배포
+
+#### 설치 목적
+웹 애플리케이션을 배포하고 실행하는 Tomcat 서버를 구성합니다.
+
+#### 실행 방법
 ```bash
-./install_tomcat.sh
+sudo ./install_tomcat10.sh
 ```
-- 공통 서비스명 예: `blog-tomcat`, `bbs-tomcat`
-- 인스턴스 수 입력 시 `-1`, `-2`, `-3` 형태로 생성
 
-> 💡 해당 스크립트는 `deploy/tomcat10/Dockerfile`을 기반으로 `Tomcat 10 + Java 21` 환경을 구성합니다.
-> - `ROOT.war`는 `deploy/tomcat10/ROOT.war`에 위치
-> - 사용자 정의 Dockerfile/WAR 파일로 쉽게 교체 가능
-> - 배포 시 `NodePort` 서비스로 자동 노출됨
+#### 입력 예시
+```
+서비스 이름 입력: blog-tomcat
+배포할 인스턴스 수: 2
+```
 
-삭제:
+### 5️⃣ Ingress 및 인증서 구성
+
+#### 설치 목적
+클러스터 내부 서비스와 외부 도메인을 연결하고, SSL/TLS 보안을 적용합니다.
+
+#### 실행 방법
 ```bash
-./delete_tomcat.sh
+sudo ./install_ingress-nginx.sh
 ```
 
-### 4. **Ingress + HTTPS 도메인 연결 설정**
-```bash
-./install_ingress-nginx.sh
+#### 입력 예시
+```
+내부 서비스 주소: http://blog-tomcat.production.svc.cluster.local:8080
+도메인 입력: blog.example.com
 ```
 
-- **내부 서비스 주소 + 도메인명 + 외부 포트**를 입력받아 Ingress 설정을 자동 구성합니다.
-- 예시 입력:
-  - 내부 서비스: `http://blog-tomcat.production.svc.cluster.local:8080`
-  - 도메인: `blog.sample.com`
-  - 포트: `443`
-- 인증서는 다음 경로의 파일을 사용합니다:
-  - `certs/server.all.crt.pem` (인증서 파일)
-  - `certs/server.key.pem` (개인키 파일)
-- Ingress Controller(`ingress-nginx`)가 설치되지 않은 경우 자동 설치됩니다.
-- 입력한 도메인 정보를 기반으로 다음 리소스가 생성됩니다:
-  - TLS Secret: `tls-<도메인>`
-  - Ingress: `ingress-<포트>-<도메인>`
+## ✨ 구성 완료 후 기대 효과
+- Git을 통한 간편한 자동화 배포
+- Rancher 웹 UI를 통한 간편한 클러스터 관리
+- 외부 서비스 접근 및 TLS 보안 강화
 
-📄 등록된 정보는 `deploy/ingress_records.txt`에 자동 저장됩니다. 저장 형식은 아래와 같습니다:
-```
-DOMAIN=blog.sample.com PORT=443 SECRET=tls-blog-blog-sample-com INGRESS=ingress-443-blog-blog-sample-com URL=http://blog-tomcat.production.svc.cluster.local:8080
-```
+## 🗂️ 참고 스크립트 목록
+| 구성 항목 | 스크립트 파일 |
+|-----------|--------------|
+| 마스터/워커 노드 설치 | install_k3s_full_stack.sh |
+| MySQL 설치 | install_mysql8.sh |
+| Tomcat10 배포 | install_tomcat10.sh |
+| Ingress 및 인증서 구성 | install_ingress-nginx.sh |
 
-- 동일한 포트(`443`)에서도 여러 도메인을 등록할 수 있으며, 와일드카드 인증서를 사용할 수 있습니다.
+## 🚧 향후 확장 방안
+- GitHub Actions 또는 Jenkins를 통한 CI/CD 구축
+- Argo CD를 이용한 GitOps 환경 구성
+- Prometheus 및 Grafana를 활용한 모니터링 시스템 구축
+- 인증서 자동 갱신 관리 도입
 
----
-
-### 🔧 Ingress 설정 삭제
-```bash
-./delete_ingress-nginx.sh
-```
-
-- 삭제할 **도메인명**을 입력하면 해당 도메인에 연결된 Ingress 및 TLS Secret 리소스를 자동 삭제합니다.
-- 삭제된 도메인은 `deploy/ingress_records.txt`에서도 자동으로 제거됩니다.
-
-예시 실행:
-```
-삭제할 도메인 입력 (예: blog.sample.com): blog.sample.com
-```
-
-> ✅ `ingress_records.txt`를 기반으로 등록/삭제를 관리하므로, Ingress 설정을 시각적으로 추적하고 유지하기 편리합니다.
-
----
-
-## 🧹 클러스터 전체 삭제 스크립트
-
-```bash
-./uninstall_k3s_full_stack_v2.sh
-```
-- 마스터/워커 중 선택
-- 마스터는 클러스터 전체 + Registry 삭제
-- 워커는 `k3s-agent`만 삭제
-- 안전 확인을 위해 사용자 입력 요구
-
----
-
-## 📁 디렉토리 구조 요약
-
-```bash
-certs/                        👉 TLS 인증서 디렉토리
-deploy/
-  ├── mysql/                  👉 초기 database_dump.sql 포함
-  └── tomcat10/               👉 Tomcat Dockerfile + ROOT.war
-install_k3s_full_stack_v2.sh       👉 전체 구성 설치 (마스터/워커)
-uninstall_k3s_full_stack_v2.sh     👉 전체 구성 삭제
-install_mysql8.sh                  👉 MySQL 배포
-install_tomcat.sh                  👉 Tomcat 다중 배포
-install_ingress-nginx.sh            👉 Ingress + 인증서 + 포트 연동
-delete_ingress-nginx.sh              👉 Ingress 구성 삭제
-delete_tomcat.sh                   👉 Tomcat 일괄 삭제
-delete_helm_release.sh             👉 Helm 설치 제거
-delete_k8s_service.sh              👉 수동 리소스 제거
-```
-
----
-
-## ✅ 접속 예시
-
-- 내부 접속: `http://blog-tomcat.production.svc.cluster.local:8080`
-- 외부 접속: `https://blog.ydata.co.kr:443`
-
----
-
-## 🌐 Rancher Web UI 접속
-
-- 도메인 입력 시 `https://rancher.sample.com` 과 같이 HTTPS로 접근
-- 초기 ID: `admin`, 비밀번호: `admin`
-- 기능:
-  - K8s 리소스 배포/삭제/모니터링
-  - Helm Chart 관리
-  - Pod 상태, 로그, 노드 상태 시각화
-
----
-
-## 🙋‍♂️ 기타 안내
-
-- 인증서 없이도 설치 가능 → 추후 `install_ingress-nginx.sh`로 연결
-- 동일한 WAR 파일을 여러 서버에 손쉽게 배포
-- NodePort 서비스는 테스트용, 운영은 HTTPS(443) 사용 권장
+이 구성은 Kubernetes 인프라를 간편히 구축하고 운영할 수 있는 효율적인 자동화 방안입니다.

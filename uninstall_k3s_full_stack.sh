@@ -11,6 +11,11 @@ read -p "선택하세요 (1 or 2): " mode
 # 네임스페이스 강제 삭제 함수
 delete_namespace_force() {
   ns="$1"
+  if ! command -v kubectl >/dev/null 2>&1; then
+    echo "⚠️ [$ns] kubectl 명령어가 없어 Finalizer 제거를 건너뜁니다."
+    return
+  fi
+
   echo "📍 [$ns] 비동기 삭제 요청"
   kubectl delete ns "$ns" --ignore-not-found=true --wait=false || true
   sleep 2
@@ -64,12 +69,22 @@ if [[ "$mode" == "1" ]]; then
   fi
 
   echo "[3/11] Webhook 삭제"
-  kubectl patch validatingwebhookconfigurations ingress-nginx-admission -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
-  kubectl patch validatingwebhookconfigurations validating-webhook-configuration -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
-  kubectl delete validatingwebhookconfigurations ingress-nginx-admission validating-webhook-configuration --ignore-not-found || true
+
+  if command -v kubectl >/dev/null 2>&1; then
+    kubectl patch validatingwebhookconfigurations ingress-nginx-admission -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+    kubectl patch validatingwebhookconfigurations validating-webhook-configuration -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+    kubectl delete validatingwebhookconfigurations ingress-nginx-admission validating-webhook-configuration --ignore-not-found || true
+  else
+    echo "⚠️ kubectl 명령어가 없어 Webhook 삭제를 건너뜁니다."
+  fi
 
   echo "[4/11] Ingress Controller 리소스 제거"
-  delete_namespace_force ingress-nginx
+
+  if command -v kubectl >/dev/null 2>&1; then
+    delete_namespace_force ingress-nginx
+  else
+    echo "⚠️ kubectl 명령어가 없어 ingress-nginx 리소스 제거를 건너뜁니다."
+  fi
 
   echo "[5/11] 로컬 Docker Registry 제거"
   docker stop registry 2>/dev/null || true

@@ -104,12 +104,24 @@ if [[ "$mode" == "1" ]]; then
   sudo rm -f /usr/local/bin/kubectl /usr/local/bin/helm
 
   echo "[7.5/11] containerd/k3s 관련 프로세스 종료 및 언마운트"
+
   sudo pkill -f k3s || true
   sudo pkill -f containerd || true
   sudo pkill -f containerd-shim || true
   sleep 2
-  sudo umount -lf /run/k3s/* || true
-  sudo umount -lf /var/lib/kubelet/pods/*/volumes/* || true
+
+  # 안전하게 언마운트 처리
+  if compgen -G "/run/k3s/*" > /dev/null; then
+    sudo umount -lf /run/k3s/* || true
+  else
+    echo "⚠️ /run/k3s/* 대상이 없어 언마운트 건너뜀"
+  fi
+
+  if compgen -G "/var/lib/kubelet/pods/*/volumes/*" > /dev/null; then
+    sudo umount -lf /var/lib/kubelet/pods/*/volumes/* || true
+  else
+    echo "⚠️ /var/lib/kubelet/pods/*/volumes/* 대상이 없어 언마운트 건너뜀"
+  fi
 
 
   echo "[8/11] 마스터 노드 설정 디렉토리 정리"

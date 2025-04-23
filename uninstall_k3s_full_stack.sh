@@ -104,18 +104,23 @@ if [[ "$mode" == "1" ]]; then
   sudo rm -f /usr/local/bin/kubectl /usr/local/bin/helm
 
   echo "[7.5/11] containerd/k3s 관련 프로세스 종료 및 언마운트"
-
+  echo "7.5.1"
   sudo pkill -f k3s || true
+  echo "7.5.2"
   sudo pkill -f containerd || true
+  echo "7.5.3"
   sudo pkill -f containerd-shim || true
   sleep 2
-
+  
+  echo "7.5.4"
   # 안전하게 언마운트 처리
   if compgen -G "/run/k3s/*" > /dev/null; then
     sudo umount -lf /run/k3s/* || true
   else
     echo "⚠️ /run/k3s/* 대상이 없어 언마운트 건너뜀"
   fi
+
+  echo "7.5.5"
 
   if compgen -G "/var/lib/kubelet/pods/*/volumes/*" > /dev/null; then
     sudo umount -lf /var/lib/kubelet/pods/*/volumes/* || true

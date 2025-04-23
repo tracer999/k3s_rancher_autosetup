@@ -32,9 +32,20 @@ if [[ "$mode" == "1" ]]; then
   echo "🧹 마스터 노드 삭제 시작..."
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
+
   echo "[1/11] Helm 릴리즈 제거"
-  helm uninstall rancher -n cattle-system 2>/dev/null || true
-  helm uninstall cert-manager -n cattle-system 2>/dev/null || true
+  RLS_RANCHER=$(helm list -A | grep 'rancher' | awk '{print $1}')
+  if [[ -n "$RLS_RANCHER" ]]; then
+    helm uninstall "$RLS_RANCHER" -n cattle-system
+  else
+    echo "⚠️ rancher 릴리즈 없음"
+  fi
+  RLS_CERT=$(helm list -A | grep 'cert-manager' | awk '{print $1}')
+  if [[ -n "$RLS_CERT" ]]; then
+    helm uninstall "$RLS_CERT" -n cattle-system
+  else
+    echo "⚠️ cert-manager 릴리즈 없음"
+  fi
 
   echo "[2/11] 네임스페이스 삭제 (비동기 + Finalizer 제거)"
   namespaces=$(kubectl get ns -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' \

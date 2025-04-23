@@ -63,8 +63,7 @@ if [[ "$mode" == "1" ]]; then
   kubectl delete validatingwebhookconfigurations ingress-nginx-admission validating-webhook-configuration --ignore-not-found || true
 
   echo "[4/11] Ingress Controller 리소스 제거"
-  kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml \
-    --ignore-not-found=true --timeout=30s || true
+  delete_namespace_force ingress-nginx
 
   echo "[5/11] 로컬 Docker Registry 제거"
   docker stop registry 2>/dev/null || true

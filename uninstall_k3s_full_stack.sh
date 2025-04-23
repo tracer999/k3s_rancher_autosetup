@@ -34,18 +34,21 @@ if [[ "$mode" == "1" ]]; then
 
 
   echo "[1/11] Helm 릴리즈 제거"
-  RLS_RANCHER=$(helm list -A | grep 'rancher' | awk '{print $1}')
-  if [[ -n "$RLS_RANCHER" ]]; then
-    helm uninstall "$RLS_RANCHER" -n cattle-system
+  set +e
+
+  if helm list -A | grep -q '^rancher[[:space:]]'; then
+    helm uninstall rancher -n cattle-system
   else
-    echo "⚠️ rancher 릴리즈 없음"
+    echo "⚠️ rancher 릴리즈가 존재하지 않습니다."
   fi
-  RLS_CERT=$(helm list -A | grep 'cert-manager' | awk '{print $1}')
-  if [[ -n "$RLS_CERT" ]]; then
-    helm uninstall "$RLS_CERT" -n cattle-system
+
+  if helm list -A | grep -q '^cert-manager[[:space:]]'; then
+    helm uninstall cert-manager -n cattle-system
   else
-    echo "⚠️ cert-manager 릴리즈 없음"
+    echo "⚠️ cert-manager 릴리즈가 존재하지 않습니다."
   fi
+
+  set -e
 
   echo "[2/11] 네임스페이스 삭제 (비동기 + Finalizer 제거)"
   namespaces=$(kubectl get ns -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' \

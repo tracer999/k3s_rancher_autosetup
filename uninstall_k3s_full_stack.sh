@@ -107,7 +107,7 @@ if [[ "$mode" == "1" ]]; then
   echo "7.5.1"
   sudo pkill -f k3s || true
   echo "7.5.2"
-  sudo pkill -f containerd || true
+  # sudo pkill -f containerd || true
   echo "7.5.3"
   sudo pkill -f containerd-shim || true
   sleep 2

@@ -105,11 +105,11 @@ if [[ "$mode" == "1" ]]; then
 
   echo "[7.5/11] containerd/k3s 관련 프로세스 종료 및 언마운트"
   echo "7.5.1"
-  sudo pkill -f k3s || true
+  # sudo pkill -f k3s || true
   echo "7.5.2"
   # sudo pkill -f containerd || true
   echo "7.5.3"
-  sudo pkill -f containerd-shim || true
+  # sudo pkill -f containerd-shim || true
   sleep 2
   
   echo "7.5.4"

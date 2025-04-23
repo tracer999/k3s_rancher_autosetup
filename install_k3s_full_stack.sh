@@ -30,7 +30,8 @@ if [[ "$mode" == "1" ]]; then
   echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' | sudo tee -a /etc/profile /etc/bash.bashrc > /dev/null
   sudo chmod +r /etc/rancher/k3s/k3s.yaml
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
+  
+  
   echo "[5/11] 로컬 스토리지 경로 생성"
   sudo mkdir -p /var/lib/rancher/k3s/storage
   sudo chmod -R 777 /var/lib/rancher/k3s/storage
@@ -101,6 +102,19 @@ if [[ "$mode" == "1" ]]; then
 }
 EOF
   sudo systemctl restart docker
+
+  echo "[11++] 마스터 노드의 containerd 레지스트리 설정 추가"
+  sudo mkdir -p /etc/rancher/k3s
+  cat <<EOF | sudo tee /etc/rancher/k3s/registries.yaml > /dev/null
+  mirrors:
+    "$REGISTRY_IP:5000":
+      endpoint:
+        - "http://$REGISTRY_IP:5000"
+EOF
+  sudo systemctl restart k3s
+
+
+
 
   echo ""
   echo "✅ Rancher 설치 완료!"

@@ -7,6 +7,7 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$BASE_DIR/deploy/tomcat10"
 REGISTRY_IP_FILE="$BASE_DIR/registry_ip"
+DEPLOY_YAML="$DEPLOY_DIR/tomcat10.yaml"
 NAMESPACE="production"
 
 ### [1] 사용자 입력 받기
@@ -16,8 +17,8 @@ if [[ -z "$GROUP_NAME" ]]; then
   exit 1
 fi
 
-read -p "🔁 배포할 Tomcat 인스턴스 수 (예: 2): " INSTANCE_COUNT
-INSTANCE_COUNT=${INSTANCE_COUNT:-2}
+read -p "🔁 배포할 Tomcat 인스턴스 수 (예: 2): " REPLICA_COUNT
+REPLICA_COUNT=${REPLICA_COUNT:-2}
 
 ### [2] 레지스트리 주소 확인
 if [ ! -f "$REGISTRY_IP_FILE" ]; then
@@ -34,39 +35,34 @@ docker build -t "$FULL_IMAGE_TAG" "$DEPLOY_DIR"
 echo "📤 이미지 푸시 중..."
 docker push "$FULL_IMAGE_TAG"
 
-### [4] 인스턴스별 배포 반복
-for i in $(seq 1 "$INSTANCE_COUNT"); do
-  INSTANCE_NAME="${GROUP_NAME}-${i}"
+### [4] 기존 YAML 제거 후 새로 생성
+if [ -f "$DEPLOY_YAML" ]; then
+  echo "🗑 기존 배포 YAML 삭제: $DEPLOY_YAML"
+  rm -f "$DEPLOY_YAML"
+fi
 
-  echo ""
-  echo "🚀 [$INSTANCE_NAME] 배포 시작..."
+echo "📝 새로운 배포 YAML 생성: $DEPLOY_YAML"
 
-  # 기존 리소스 삭제 (있을 경우)
-  kubectl delete deployment "$INSTANCE_NAME" -n $NAMESPACE --ignore-not-found
-  kubectl delete service "$INSTANCE_NAME" -n $NAMESPACE --ignore-not-found
-
-  # Deployment + NodePort Service 생성
-  cat <<EOF | kubectl apply -n $NAMESPACE -f -
+cat <<EOF > "$DEPLOY_YAML"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: $INSTANCE_NAME
+  name: $GROUP_NAME
   labels:
     app: $GROUP_NAME
-    instance: $INSTANCE_NAME
 spec:
-  replicas: 1
+  replicas: $REPLICA_COUNT
   selector:
     matchLabels:
-      instance: $INSTANCE_NAME
+      app: $GROUP_NAME
   template:
     metadata:
       labels:
         app: $GROUP_NAME
-        instance: $INSTANCE_NAME
     spec:
       containers:
-      - name: $INSTANCE_NAME
+      - name: tomcat
         image: $FULL_IMAGE_TAG
         ports:
         - containerPort: 8080
@@ -74,43 +70,29 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: $INSTANCE_NAME
-  labels:
-    app: $GROUP_NAME
+  name: $GROUP_NAME
 spec:
   type: NodePort
   selector:
-    instance: $INSTANCE_NAME
+    app: $GROUP_NAME
   ports:
   - name: http
     port: 8080
     targetPort: 8080
 EOF
 
-done
+### [5] 기존 리소스 삭제
+echo "🧹 기존 리소스 삭제 중..."
+kubectl delete deployment "$GROUP_NAME" -n $NAMESPACE --ignore-not-found
+kubectl delete service "$GROUP_NAME" -n $NAMESPACE --ignore-not-found
 
-### [5] 공통 접근용 ClusterIP 생성
+### [6] YAML로 일괄 배포
+echo "🚀 YAML 파일을 이용한 배포 시작..."
+kubectl apply -n $NAMESPACE -f "$DEPLOY_YAML"
+
+### [7] 결과 출력
 echo ""
-echo "🔗 ClusterIP 서비스 ($GROUP_NAME) 생성 중..."
-kubectl delete service $GROUP_NAME -n $NAMESPACE --ignore-not-found
-
-cat <<EOF | kubectl apply -n $NAMESPACE -f -
-apiVersion: v1
-kind: Service
-metadata:
-  name: $GROUP_NAME
-spec:
-  type: ClusterIP
-  selector:
-    app: $GROUP_NAME
-  ports:
-  - port: 8080
-    targetPort: 8080
-EOF
-
-### [6] 결과 출력
-echo ""
-echo "✅ [$GROUP_NAME] Tomcat 인스턴스 $INSTANCE_COUNT개 배포 완료!"
-echo "🌐 내부 접근 주소 (ClusterIP): http://$GROUP_NAME.$NAMESPACE.svc.cluster.local:8080"
-echo "🌍 외부 접근 (NodePort): 아래 명령어로 확인하세요:"
-echo "   kubectl get svc -n $NAMESPACE -l app=$GROUP_NAME"
+echo "✅ [$GROUP_NAME] Tomcat $REPLICA_COUNT개 인스턴스(Pod)로 배포 완료!"
+echo "📁 배포 YAML 저장 위치: $DEPLOY_YAML"
+echo "🌐 내부 주소: http://$GROUP_NAME.$NAMESPACE.svc.cluster.local:8080"
+echo "🌍 외부 접속 확인: kubectl get svc -n $NAMESPACE $GROUP_NAME"

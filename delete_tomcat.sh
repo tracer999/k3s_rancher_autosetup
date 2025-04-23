@@ -12,26 +12,24 @@ fi
 
 NAMESPACE="production"
 
-echo "🚨 [$GROUP_NAME] 그룹 Tomcat 리소스를 삭제합니다..."
+echo ""
+echo "🚨 [$GROUP_NAME] Tomcat 리소스를 삭제합니다..."
 
 ### 1. Deployment 삭제
-DEPLOYMENTS=$(kubectl get deployments -n $NAMESPACE -l app=$GROUP_NAME -o jsonpath='{.items[*].metadata.name}')
-for deploy in $DEPLOYMENTS; do
-  echo "🗑 Deployment 삭제: $deploy"
-  kubectl delete deployment "$deploy" -n $NAMESPACE
-done
-
-### 2. Service 삭제
-SERVICES=$(kubectl get svc -n $NAMESPACE -l app=$GROUP_NAME -o jsonpath='{.items[*].metadata.name}')
-for svc in $SERVICES; do
-  echo "🗑 Service 삭제: $svc"
-  kubectl delete service "$svc" -n $NAMESPACE
-done
-
-### 3. 공통 ClusterIP 서비스 삭제
-if kubectl get svc "$GROUP_NAME" -n $NAMESPACE &> /dev/null; then
-  echo "🗑 ClusterIP (공통 접근) 서비스 삭제: $GROUP_NAME"
-  kubectl delete service "$GROUP_NAME" -n $NAMESPACE
+if kubectl get deployment "$GROUP_NAME" -n $NAMESPACE &>/dev/null; then
+  echo "🗑 Deployment 삭제: $GROUP_NAME"
+  kubectl delete deployment "$GROUP_NAME" -n $NAMESPACE
+else
+  echo "⚠️ Deployment [$GROUP_NAME] 없음 (이미 삭제되었을 수 있음)"
 fi
 
-echo "✅ [$GROUP_NAME] 그룹 리소스 삭제 완료!"
+### 2. Service 삭제
+if kubectl get svc "$GROUP_NAME" -n $NAMESPACE &>/dev/null; then
+  echo "🗑 Service 삭제: $GROUP_NAME"
+  kubectl delete service "$GROUP_NAME" -n $NAMESPACE
+else
+  echo "⚠️ Service [$GROUP_NAME] 없음 (이미 삭제되었을 수 있음)"
+fi
+
+echo ""
+echo "✅ [$GROUP_NAME] 리소스 삭제 완료!"

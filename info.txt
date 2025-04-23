@@ -1,0 +1,13 @@
+
+# Deployment 확인 (replicas 설정 확인)
+sudo kubectl get deployment blog-tomcat -n production
+
+#Pod 목록 확인 (실제 컨테이너 수)
+sudo kubectl get pods -n production -l app=blog-tomcat
+
+# Service 확인 (NodePort 정보 포함)
+sudo kubectl get svc -n production blog-tomcat
+
+# 상세 보기 (옵션)
+sudo kubectl describe deployment blog-tomcat -n production
+sudo kubectl describe pod -n production -l app=blog-tomcat

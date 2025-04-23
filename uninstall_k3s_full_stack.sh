@@ -128,7 +128,11 @@ if [[ "$mode" == "1" ]]; then
   sudo rm -rf /etc/rancher/k3s /var/lib/rancher /var/lib/kubelet /run/k3s /run/flannel
 
   echo "[9/11] k3s 마스터 완전 제거"
-  /usr/local/bin/k3s-uninstall.sh || true
+  if [[ -x /usr/local/bin/k3s-uninstall.sh ]]; then
+    /usr/local/bin/k3s-uninstall.sh || true
+  else
+    echo "⚠️ k3s-uninstall.sh 가 존재하지 않아 건너뜁니다."
+  fi
 
   echo "[10/11] 로컬 저장소 정리"
   delete_common

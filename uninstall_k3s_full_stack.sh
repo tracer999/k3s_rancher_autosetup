@@ -34,28 +34,34 @@ if [[ "$mode" == "1" ]]; then
 
 
   echo "[1/11] Helm 릴리즈 제거"
-  set +e
 
-  if helm list -A | grep -q '^rancher[[:space:]]'; then
-    helm uninstall rancher -n cattle-system
+  if command -v helm >/dev/null 2>&1; then
+    set +e
+    for RELEASE in rancher cert-manager; do
+      if helm list -A | grep -q "^$RELEASE[[:space:]]"; then
+        helm uninstall "$RELEASE" -n cattle-system
+      else
+        echo "⚠️ $RELEASE 릴리즈가 존재하지 않습니다."
+      fi
+    done
+    set -e
   else
-    echo "⚠️ rancher 릴리즈가 존재하지 않습니다."
+    echo "⚠️ helm 명령어가 존재하지 않아 릴리즈 제거를 건너뜁니다."
   fi
 
-  if helm list -A | grep -q '^cert-manager[[:space:]]'; then
-    helm uninstall cert-manager -n cattle-system
-  else
-    echo "⚠️ cert-manager 릴리즈가 존재하지 않습니다."
-  fi
 
-  set -e
 
   echo "[2/11] 네임스페이스 삭제 (비동기 + Finalizer 제거)"
-  namespaces=$(kubectl get ns -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' \
-    | grep -E '^(cattle-|fleet-|local|p-|production|ingress-nginx)$')
-  for ns in $namespaces; do
-    delete_namespace_force "$ns"
-  done
+
+  if command -v kubectl >/dev/null 2>&1; then
+    namespaces=$(kubectl get ns -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' \
+      | grep -E '^(cattle-|fleet-|local|p-|production|ingress-nginx)$')
+    for ns in $namespaces; do
+      delete_namespace_force "$ns"
+    done
+  else
+    echo "⚠️ kubectl 명령어가 존재하지 않아 네임스페이스 제거를 건너뜁니다."
+  fi
 
   echo "[3/11] Webhook 삭제"
   kubectl patch validatingwebhookconfigurations ingress-nginx-admission -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true

@@ -86,9 +86,9 @@ if [[ "$mode" == "1" ]]; then
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   fi
 
-  if ! docker ps --format '{{.Names}}' | grep -q '^registry$'; then
+  if ! sudo docker ps --format '{{.Names}}' | grep -q '^registry$'; then
     sudo mkdir -p /opt/registry/data
-    docker run -d --restart=always --name registry \
+    sudo docker run -d --restart=always --name registry \
       -p 5000:5000 \
       -v /opt/registry/data:/var/lib/registry \
       registry:2

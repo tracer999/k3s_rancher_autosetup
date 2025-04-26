@@ -157,7 +157,7 @@ Select:
 ---
 
 ## 📌 Credits
-Developed by the Graduate School of Information Technology and Entrepreneurship, Dankook University, Korea 🇰🇷
+Developed by the Graduate School of Information Technology and Entrepreneurship, Dankook University, Korea 
 
 ---
 

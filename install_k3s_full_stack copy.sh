@@ -57,16 +57,8 @@ if [[ "$mode" == "1" ]]; then
   echo "[9/11] production 네임스페이스 생성"
   kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
 
-  echo "[10/11] Ingress Controller 설치 (Helm Chart로 설치)"
-
-  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-  helm repo update
-
-  helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace \
-    --set controller.config.proxy-body-size="50m" \
-    --set controller.enableModsecurity=false \
-    --set controller.enableOWASPModSecurity=false
-
+  echo "[10/11] Ingress Controller 설치"
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml
   kubectl wait --namespace ingress-nginx \
     --for=condition=Ready pod \
     --selector=app.kubernetes.io/component=controller \

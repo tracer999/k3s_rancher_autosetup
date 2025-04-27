@@ -11,3 +11,11 @@ sudo kubectl get svc -n production blog-tomcat
 # 상세 보기 (옵션)
 sudo kubectl describe deployment blog-tomcat -n production
 sudo kubectl describe pod -n production -l app=blog-tomcat
+
+
+sudo kubectl get pods -n production -l app=blog-tomcat
+
+kubectl logs -n production -l app=blog-tomcat --follow
+
+
+sudo kubectl get svc -n production

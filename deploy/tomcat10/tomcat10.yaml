@@ -6,7 +6,7 @@ metadata:
   labels:
     app: blog-tomcat
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: blog-tomcat
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: tomcat
-        image: 172.31.15.65:5000/blog-tomcat:latest
+        image: 192.168.0.101:5000/blog-tomcat:latest
         ports:
         - containerPort: 8080
 ---

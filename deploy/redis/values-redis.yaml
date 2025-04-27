@@ -1,0 +1,22 @@
+fullnameOverride: blog-redis
+
+architecture: standalone
+
+auth:
+  enabled: true
+  password: "NEWtec4075@"
+
+master:
+  service:
+    type: NodePort
+    nodePorts:
+      redis: "31679"
+  port: 6379
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 500m

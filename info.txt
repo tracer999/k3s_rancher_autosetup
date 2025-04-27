@@ -15,7 +15,12 @@ sudo kubectl describe pod -n production -l app=blog-tomcat
 
 sudo kubectl get pods -n production -l app=blog-tomcat
 
-kubectl logs -n production -l app=blog-tomcat --follow
+sudo kubectl logs -n production -l app=blog-tomcat --follow
 
 
 sudo kubectl get svc -n production
+
+sudo kubectl get pods -n production -l app=blog-tomcat
+
+# 이중에서
+kubectl exec -it -n production blog-tomcat-5cb8fcc5dd-7sn7n -- /bin/bash

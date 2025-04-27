@@ -114,7 +114,7 @@ EOF
   sudo systemctl restart k3s
 
 
-
+  sudo apt install -y nfs-common
 
   echo ""
   echo "✅ Rancher 설치 완료!"

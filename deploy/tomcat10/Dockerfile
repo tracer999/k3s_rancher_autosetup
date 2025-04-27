@@ -14,7 +14,7 @@ COPY ROOT.war /usr/local/tomcat/webapps/ROOT.war
 RUN ls -lh /usr/local/tomcat/webapps/
 
 # 업로드 경로
-RUN mkdir -p /blog_demo/uploads
+RUN mkdir -p /blog_demo/uploads && chmod 777 /blog_demo/uploads
 
 EXPOSE 8080
 

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-nfs-pod
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-nfs-pod
+  template:
+    metadata:
+      labels:
+        app: test-nfs-pod
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command: ["sleep", "3600"]
+        volumeMounts:
+        - mountPath: /upload
+          name: upload-volume
+      volumes:
+      - name: upload-volume
+        persistentVolumeClaim:
+          claimName: upload-pvc

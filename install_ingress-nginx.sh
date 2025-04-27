@@ -77,6 +77,9 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"   
+    nginx.ingress.kubernetes.io/enable-modsecurity: "false"  
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "false"  
 spec:
   tls:
   - hosts:

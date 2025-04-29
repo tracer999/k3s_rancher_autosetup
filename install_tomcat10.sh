@@ -114,6 +114,7 @@ spec:
   - name: http
     port: 8080
     targetPort: 8080
+    nodePort: 31808
 EOF
 
 ### [5] 기존 리소스 삭제

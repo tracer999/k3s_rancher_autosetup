@@ -3,10 +3,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: blog-tomcat
+  namespace: production
   labels:
     app: blog-tomcat
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: blog-tomcat
@@ -20,11 +21,19 @@ spec:
         image: 192.168.0.101:5000/blog-tomcat:latest
         ports:
         - containerPort: 8080
+        volumeMounts:
+        - name: upload-volume
+          mountPath: /blog_demo/uploads
+      volumes:
+      - name: upload-volume
+        persistentVolumeClaim:
+          claimName: upload-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: blog-tomcat
+  namespace: production
 spec:
   type: NodePort
   selector:
@@ -33,3 +42,4 @@ spec:
   - name: http
     port: 8080
     targetPort: 8080
+    nodePort: 31808

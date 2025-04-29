@@ -79,7 +79,9 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"   
     nginx.ingress.kubernetes.io/enable-modsecurity: "false"  
-    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "false"  
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "false" 
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
 spec:
   tls:
   - hosts:

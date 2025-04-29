@@ -24,3 +24,6 @@ sudo kubectl get pods -n production -l app=blog-tomcat
 
 # 이중에서
 kubectl exec -it -n production blog-tomcat-5cb8fcc5dd-7sn7n -- /bin/bash
+
+
+sudo kubectl get svc -A --field-selector spec.type=NodePort

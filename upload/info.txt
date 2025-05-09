@@ -1,0 +1,2 @@
+This 'upload' folder is designated to function as a shared directory.
+When the setup_nfs_and_pv.sh script is executed, this folder will be configured for access by Kubernetes Pods.

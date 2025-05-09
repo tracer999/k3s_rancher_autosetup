@@ -3,46 +3,45 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "🤩 k3s 클러스터 구성 스크립트"
-echo "1) 마스터 노드 설치"
-echo "2) 워커 노드 설치"
-read -p "선택하세요 (1 or 2): " mode
+echo "🤩 K3s Cluster Setup Script"
+echo "1) Install Master Node"
+echo "2) Install Worker Node"
+read -p "Choose an option (1 or 2): " mode
 
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 if [[ "$mode" == "1" ]]; then
-  echo "🛠 마스터 노드 설치 시작..."
-  read -p "Rancher에서 사용할 도메인 입력 (예: rancher.sample.com): " RANCHER_DOMAIN
+  echo "🛠 Starting Master Node Installation..."
+  read -p "Enter the domain name for Rancher (e.g., rancher.example.com): " RANCHER_DOMAIN
 
-  echo "[1/11] 시스템 업데이트 및 패키지 설치"
+  echo "[1/11] Updating system and installing packages"
   sudo apt update && sudo apt install -y curl wget apt-transport-https ca-certificates gnupg lsb-release jq
 
-  echo "[2/11] k3s 설치"
+  echo "[2/11] Installing k3s"
   curl -sfL https://get.k3s.io | sh -
 
   REGISTRY_IP=$(hostname -I | awk '{print $1}')
   echo "$REGISTRY_IP" > "$SCRIPT_DIR/registry_ip"
 
-  echo "[3/11] Helm 설치"
+  echo "[3/11] Installing Helm"
   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-  echo "[4/11] Kubeconfig 설정"
+  echo "[4/11] Setting up kubeconfig"
   echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' | sudo tee -a /etc/profile /etc/bash.bashrc > /dev/null
   sudo chmod +r /etc/rancher/k3s/k3s.yaml
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-  
-  
-  echo "[5/11] 로컬 스토리지 경로 생성"
+
+  echo "[5/11] Creating local storage path"
   sudo mkdir -p /var/lib/rancher/k3s/storage
   sudo chmod -R 777 /var/lib/rancher/k3s/storage
 
-  echo "[6/11] cert-manager 설치"
+  echo "[6/11] Installing cert-manager"
   kubectl create namespace cattle-system --dry-run=client -o yaml | kubectl apply -f -
   helm repo add jetstack https://charts.jetstack.io
   helm repo update
   helm install cert-manager jetstack/cert-manager --namespace cattle-system --set installCRDs=true
 
-  echo "[7/11] Rancher 설치 (도메인: $RANCHER_DOMAIN)"
+  echo "[7/11] Installing Rancher (domain: $RANCHER_DOMAIN)"
   helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
   helm repo update
   helm install rancher rancher-latest/rancher \
@@ -51,14 +50,13 @@ if [[ "$mode" == "1" ]]; then
     --set replicas=1 \
     --set bootstrapPassword=admin
 
-  echo "[8/11] Rancher NodePort 강제 설정"
+  echo "[8/11] Forcing Rancher NodePort configuration"
   kubectl patch svc rancher -n cattle-system -p '{"spec": {"type": "NodePort"}}'
 
-  echo "[9/11] production 네임스페이스 생성"
+  echo "[9/11] Creating 'production' namespace"
   kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
 
-  echo "[10/11] Ingress Controller 설치 (Helm Chart로 설치)"
-
+  echo "[10/11] Installing Ingress Controller via Helm"
   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
   helm repo update
 
@@ -72,11 +70,11 @@ if [[ "$mode" == "1" ]]; then
     --selector=app.kubernetes.io/component=controller \
     --timeout=120s
 
-  echo "[11/11] 로컬 Docker Registry 설치"
+  echo "[11/11] Installing local Docker Registry"
   if ! command -v docker &> /dev/null; then
-    echo "🐳 Docker가 설치되지 않았습니다. 설치 진행..."
+    echo "🐳 Docker not found. Installing..."
 
-    echo "[1] Docker APT 저장소 설정"
+    echo "[1] Setting up Docker APT repository"
     sudo apt-get update
     sudo apt-get install -y ca-certificates curl gnupg lsb-release
 
@@ -89,7 +87,7 @@ if [[ "$mode" == "1" ]]; then
       https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
       sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    echo "[2] Docker 설치"
+    echo "[2] Installing Docker"
     sudo apt-get update
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   fi
@@ -102,7 +100,7 @@ if [[ "$mode" == "1" ]]; then
       registry:2
   fi
 
-  echo "[11+] Docker insecure registry 설정"
+  echo "[11+] Configuring Docker insecure registry"
   sudo mkdir -p /etc/docker
   cat <<EOF | sudo tee /etc/docker/daemon.json > /dev/null
 {
@@ -111,46 +109,45 @@ if [[ "$mode" == "1" ]]; then
 EOF
   sudo systemctl restart docker
 
-  echo "[11++] 마스터 노드의 containerd 레지스트리 설정 추가"
+  echo "[11++] Adding containerd registry config for Master Node"
   sudo mkdir -p /etc/rancher/k3s
   cat <<EOF | sudo tee /etc/rancher/k3s/registries.yaml > /dev/null
-  mirrors:
-    "$REGISTRY_IP:5000":
-      endpoint:
-        - "http://$REGISTRY_IP:5000"
+mirrors:
+  "$REGISTRY_IP:5000":
+    endpoint:
+      - "http://$REGISTRY_IP:5000"
 EOF
   sudo systemctl restart k3s
-
 
   sudo apt install -y nfs-common
 
   echo ""
-  echo "✅ Rancher 설치 완료!"
-  echo "🌐 Rancher NodePort 주소: http://$REGISTRY_IP:<NodePort>"
-  echo "🌐 향후 도메인 주소: https://$RANCHER_DOMAIN (install_ingress-nginx.sh로 인증서 연동)"
-  echo "👤 초기 ID: admin / 비밀번호: admin"
+  echo "✅ Rancher installation complete!"
+  echo "🌐 Rancher NodePort address: http://$REGISTRY_IP:<NodePort>"
+  echo "🌐 Domain address: https://$RANCHER_DOMAIN (use install_ingress-nginx.sh to enable HTTPS)"
+  echo "👤 Default ID: admin / Password: admin"
   echo "📦 Registry: http://$REGISTRY_IP:5000"
   echo ""
 
-  echo "🔑 워커 노드 연결 정보"
-  echo "📌 마스터 IP: $REGISTRY_IP"
+  echo "🔑 Worker Node Join Info"
+  echo "📌 Master IP: $REGISTRY_IP"
   echo "🔐 Join Token:"
   sudo cat /var/lib/rancher/k3s/server/node-token
 
 elif [[ "$mode" == "2" ]]; then
-  echo "🔗 워커 노드 설치 시작..."
-  read -p "마스터 노드 IP: " master_ip
-  read -p "Join 토큰: " token
+  echo "🔗 Starting Worker Node Installation..."
+  read -p "Master Node IP: " master_ip
+  read -p "Join Token: " token
   echo "$master_ip" > "$SCRIPT_DIR/registry_ip"
 
-  echo "[1/5] 로컬 스토리지 생성"
+  echo "[1/5] Creating local storage path"
   sudo mkdir -p /var/lib/rancher/k3s/storage
   sudo chmod -R 777 /var/lib/rancher/k3s/storage
 
-  echo "[2/5] k3s-agent 설치"
+  echo "[2/5] Installing k3s-agent"
   curl -sfL https://get.k3s.io | K3S_URL="https://$master_ip:6443" K3S_TOKEN="$token" sh -
 
-  echo "[3/5] 로컬 Registry 설정"
+  echo "[3/5] Configuring local Docker Registry"
   CONFIG_PATH="/etc/rancher/k3s/registries.yaml"
   sudo mkdir -p /etc/rancher/k3s
   cat <<EOF | sudo tee $CONFIG_PATH > /dev/null
@@ -160,16 +157,16 @@ mirrors:
       - "http://$master_ip:5000"
 EOF
 
-  echo "[4/5] k3s-agent 재시작"
+  echo "[4/5] Restarting k3s-agent"
   if systemctl list-units --type=service | grep -q k3s-agent; then
     sudo systemctl restart k3s-agent
   fi
 
-  echo "[5/5] 설치 완료!"
+  echo "[5/5] Installation complete!"
 
 else
-  echo "❌ 잘못된 선택입니다. 1 또는 2를 입력하세요."
+  echo "❌ Invalid option. Please enter 1 or 2."
   exit 1
 fi
 
-echo "🚀 스크립트 실행 완료"
+echo "🚀 Script execution complete"

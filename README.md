@@ -1,149 +1,120 @@
+🌐 Language: [한국어](./README.md) | [English](./README_en.md) | [日本語](./README_ja.md) | [Español](./README_es.md)
 
-# k3s Rancher 자동화 구성 안내서
+# ⚙️ k3s 기반 경량 Kubernetes 클러스터 자동 설치 스크립트 모음
 
-## 🚀 개요
+## 📌 개요
 
-최근 소프트웨어 개발 및 배포 환경은 전통적인 모놀리식 아키텍처(Monolithic Architecture)에서 마이크로서비스 아키텍처(MSA)로 전환되고 있습니다. 이에 따라 운영 환경 또한 가상머신(VM)에서 컨테이너 기반 환경으로 이동하면서 컨테이너 오케스트레이션 도구에 대한 수요가 증가하고 있습니다.
+이 저장소는 **경량 쿠버네티스 배포판인 k3s**를 기반으로 한 마스터-워커 구조의 클러스터를 손쉽게 구축하고, MySQL, Tomcat, Ingress, NFS 등의 서비스를 자동으로 설치·운영하기 위한 **쉘 스크립트 모음**입니다.
 
-이 안내서는 Kubernetes의 복잡성을 줄이고 경량화된 배포판인 k3s를 이용하여 Kubernetes 클러스터 구축을 손쉽게 할 수 있도록, Rancher 및 필수 구성 요소의 설치를 자동화하는 방법을 설명합니다.
+- 기본 구성: 마스터 노드 1대, 워커 노드 1대
+- 워커 노드는 필요에 따라 **추가 확장 가능**
+- 웹 애플리케이션 실행에 필요한 Tomcat 및 공유 스토리지(NFS) 자동 구성
+- 자체 인증서를 활용한 HTTPS Ingress 구성 지원
 
-## 📌 k3s 소개
+---
 
-k3s는 다음과 같은 특징을 가진 경량 Kubernetes 배포판입니다:
-- 빠르고 쉬운 설치와 적은 리소스 사용
-- 단일 바이너리 구성으로 복잡성 감소
-- Helm, Traefik, Containerd 기본 내장
+## 📂 설치 순서 요약
 
-## ✅ 사전 준비 사항
+### 1️⃣ `install_k3s_full_stack.sh` — 마스터 및 워커 노드 설치
 
-- AWS 클라우드 환경 기준으로 최소 `t2.medium` 이상의 스펙을 가진 VM 2대 또는 동일 사양의 온프레미스 서버 2대가 필요합니다. 하나의 마스터 노드로 다수의 워커 노드 구성이 가능합니다.
+- 마스터/워커 공용 스크립트입니다.
+- 마스터 노드에서는 Rancher, Ingress Controller, Docker Registry, cert-manager 등을 자동 설치합니다.
+- 워커 노드는 마스터 IP 및 join token을 입력하여 클러스터에 합류합니다.
 
-## 📦 자동 설치 구성 흐름
-
-### 1️⃣ 마스터 노드 설치
-
-#### 목적
-마스터 노드는 Kubernetes 클러스터를 관리합니다. 이 스크립트는 Rancher, Ingress Controller, Docker Registry 등의 필수 요소를 자동 설치합니다.
-
-#### 실행 방법
 ```bash
+# 마스터 또는 워커에서 실행
 sudo ./install_k3s_full_stack.sh
 ```
 
-#### 입력 예시
-```
-Rancher에서 사용할 도메인 입력: rancher.dankook.ac.kr
-```
+### 2️⃣ `install_mysql8.sh` — MySQL 8 설치
 
-### 2️⃣ 워커 노드 설치
+- Helm 차트를 이용해 `production` 네임스페이스에 MySQL을 배포합니다.
+- 초기 SQL 덤프가 `deploy/mysql/init-sql/database_dump.sql`에 있으면 자동 반영됩니다.
+- 결과적으로 내부 또는 외부에서 접근 가능한 MySQL 서비스를 생성합니다.
 
-#### 목적
-마스터 노드에 연결되어 실제 서비스를 실행하는 워커 노드를 설치합니다.
-
-#### 실행 방법
-```bash
-sudo ./install_k3s_full_stack.sh
-```
-
-#### 입력 예시
-```
-마스터 노드 IP: 192.168.1.100
-Join 토큰: K106a...::server:xxxxx
-```
-
-### 3️⃣ MySQL 8 설치
-
-#### 목적
-애플리케이션 데이터 저장을 위한 MySQL 데이터베이스를 설치합니다. 별도의 VM 기반 DB 사용을 권장하지만, 컨테이너 기반 설치가 필요한 경우 이 스크립트를 사용할 수 있습니다.
-
-#### 실행 방법
 ```bash
 sudo ./install_mysql8.sh
 ```
 
-#### 입력 예시
+### 3️⃣ `setup_nfs_and_pv.sh` — NFS 서버 설치 및 PV/PVC 생성
+
+- 마스터 노드에서 NFS 서버를 설치하고, 공유 폴더를 설정합니다.
+- Kubernetes에서 접근 가능한 PersistentVolume 및 PersistentVolumeClaim 리소스를 자동 생성합니다.
+
+```bash
+sudo ./setup_nfs_and_pv.sh
 ```
-DB 이름: mydb
-DB 사용자 이름: user01
-DB 비밀번호: yourpassword
-MySQL 서비스 이름: mysql-svc
-```
 
-### 4️⃣ Tomcat10 배포
+> 생성된 YAML 파일은 `pv_pvc_yaml/` 디렉토리에 저장됩니다.
 
-#### 목적
-웹 애플리케이션을 배포하는 Tomcat 서버를 설치합니다. 이 스크립트는 `deploy/tomcat10/Dockerfile`을 참조하여 Docker 이미지를 만들고, 마스터 노드에 설치된 Registry에 저장한 후 이를 기반으로 컨테이너(POD)를 배포합니다. 여러 인스턴스를 설치하여 내부 로드밸런싱을 구성할 수 있습니다.
+### 4️⃣ `install_tomcat10.sh` — Tomcat10 컨테이너 배포
 
-**주의:** 제공된 Dockerfile은 Tomcat과 연동할 `ROOT.war` 파일이 필요합니다.
+- 공유 PVC가 마운트된 Tomcat10 Pod를 배포합니다.
+- Dockerfile은 `deploy/tomcat10/` 내부에 있으며, `ROOT.war` 파일이 있어야 합니다.
+- Docker 이미지 빌드 후 로컬 레지스트리에 푸시되어 사용됩니다.
 
-#### 실행 방법
 ```bash
 sudo ./install_tomcat10.sh
 ```
 
-#### 입력 예시
-```
-서비스 이름 입력: blog-tomcat
-배포할 인스턴스 수: 2
-```
+> `31808` 포트를 통해 외부에서 Tomcat에 접속 가능합니다.
 
-### 5️⃣ Ingress 및 인증서 구성
+### 5️⃣ `install_ingress-nginx.sh` — Ingress 및 인증서 적용
 
-#### 목적
-클러스터 내부 서비스와 외부 도메인을 연결하며 SSL/TLS 보안을 설정합니다.
+- 사전에 `certs/server.crt.pem`, `server.key.pem`이 준비되어 있어야 합니다.
+- 입력된 도메인에 대해 Ingress 리소스를 생성하고 HTTPS를 자동 설정합니다.
 
-**중요:** `certs/server.crt.pem`과 `certs/server.key.pem` 인증서 파일이 반드시 있어야 합니다.
-
-#### 실행 방법
 ```bash
 sudo ./install_ingress-nginx.sh
 ```
 
-#### 입력 예시
-```
-내부 서비스 주소: http://blog-tomcat.production.svc.cluster.local:8080
-도메인 입력: blog.dankook.ac.kr
-```
+> 생성된 인증서는 Secret 리소스로 등록되며, nginx Ingress Controller를 통해 TLS 적용됨.
 
-### 🗑️ 삭제 방법
+---
 
-클러스터 전체 삭제가 필요한 경우, 제공된 스크립트를 실행합니다:
+## ❌ 클러스터 제거
+
+### `uninstall_k3s_full_stack.sh`
+
+- 설치된 Rancher, Registry, cert-manager, ingress-nginx 등을 모두 삭제합니다.
+- 마스터/워커 노드에서 각각 실행 가능하며, Node 선택 메뉴가 제공됩니다.
 
 ```bash
 sudo ./uninstall_k3s_full_stack.sh
 ```
 
-선택 옵션:
-```
-1) 마스터 노드 삭제
-2) 워커 노드 삭제
-```
+---
 
-## ✨ 기대 효과
-- Git을 통한 간편한 자동화 배포
-- Rancher 웹 UI를 통한 쉬운 클러스터 관리
-- 외부 서비스 접근과 TLS를 통한 보안 강화
+## 🗂️ 스크립트 구성 요약
 
-## 🗂️ 참조 스크립트
-| 구성 항목 | 스크립트 파일 |
-|---------------|-------------|
-| 마스터/워커 노드 설치 | install_k3s_full_stack.sh |
-| MySQL 설치 | install_mysql8.sh |
+| 기능 | 스크립트 파일 |
+|------|-------------------------|
+| k3s + Rancher 설치 | install_k3s_full_stack.sh |
+| MySQL 8 설치 | install_mysql8.sh |
+| NFS 및 PV/PVC 설정 | setup_nfs_and_pv.sh |
 | Tomcat10 배포 | install_tomcat10.sh |
-| Ingress 및 인증서 구성 | install_ingress-nginx.sh |
-| 클러스터 삭제 | uninstall_k3s_full_stack.sh |
-
-## 🚧 향후 확장 방향
-- GitHub Actions 또는 Jenkins를 활용한 CI/CD 구축
-- Argo CD를 활용한 GitOps 배포
-- Prometheus 및 Grafana를 통한 모니터링 구축
-- 인증서 자동 갱신 관리
+| Ingress 및 인증서 설정 | install_ingress-nginx.sh |
+| 클러스터 제거 | uninstall_k3s_full_stack.sh |
 
 ---
 
-## 📌 제작
-단국대학교 정보융합기술·창업대학원에서 개발 🇰🇷
+## 📁 기타 디렉토리
+
+- `deploy/mysql/init-sql/`: 초기 데이터베이스 SQL 파일
+- `deploy/tomcat10/`: Tomcat Dockerfile, ROOT.war 포함 위치
+- `certs/`: HTTPS 인증서 파일 위치 (`server.crt.pem`, `server.key.pem`)
+- `pv_pvc_yaml/`: PV 및 PVC 정의 YAML 저장 폴더
 
 ---
 
-본 자동화 구성은 Kubernetes 인프라를 쉽고 빠르게 구축하고 운영할 수 있는 효율적이고 실용적인 방법을 제공합니다.
+## 👨‍💻 개발
+
+- 제작: 단국대학교 정보융합기술·창업대학원 실습 기반 프로젝트
+- 대상: k3s를 기반으로 한 Kubernetes 환경을 **직접 구성하고자 하는 실무자 및 연구자**
+
+---
+
+## 📌 비고
+
+- 본 프로젝트는 개발 및 실습용으로 구성되어 있으며, 운영환경에서는 추가 보안 설정이 필요할 수 있습니다.
+- 인증서 자동 갱신, 백업 정책, 장애 복구 시나리오 등은 별도로 구현되어야 합니다.

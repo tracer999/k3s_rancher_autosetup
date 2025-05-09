@@ -1,24 +1,24 @@
 #!/bin/bash
 set -e
 
-# 현재 스크립트 기준으로 deploy/mysql 디렉토리로 이동
+# Move to deploy/mysql directory relative to this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/deploy/mysql"
 
-# ✅ kubeconfig 설정 (root로도 사용 가능하도록)
+# ✅ Set kubeconfig (usable with root as well)
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-echo "🛠️ MySQL8 Helm Chart 자동 설치 스크립트"
-echo "💡 production 네임스페이스가 없으면 생성됩니다."
+echo "🛠️ MySQL8 Helm Chart Auto Installation Script"
+echo "💡 If the 'production' namespace doesn't exist, it will be created."
 
-# 사용자 입력 받기
-read -p "생성할 DB 이름: " DB_NAME
-read -p "DB 사용자 이름: " DB_USER
-read -s -p "DB 비밀번호: " DB_PASSWORD
+# User input
+read -p "Database name to create: " DB_NAME
+read -p "Database username: " DB_USER
+read -s -p "Database password: " DB_PASSWORD
 echo ""
-read -p "MySQL 서비스 이름 (Spring에서 사용할 호스트명): " DB_HOST
+read -p "MySQL service name (used as host in Spring): " DB_HOST
 
-# 변수 설정
+# Variable setup
 NAMESPACE="production"
 RELEASE_NAME=$DB_HOST
 CHART_NAME="bitnami/mysql"
@@ -26,29 +26,29 @@ REPO_NAME="bitnami"
 REPO_URL="https://charts.bitnami.com/bitnami"
 INIT_SQL_PATH="./init-sql/database_dump.sql"
 
-# [1] 네임스페이스 생성
-echo "[1/6] 네임스페이스 '$NAMESPACE' 생성 시도"
+# [1] Create namespace
+echo "[1/6] Attempting to create namespace '$NAMESPACE'"
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
-# [2] ConfigMap 삭제 후 재생성
-echo "[2/6] 초기 SQL(database_dump.sql)로 ConfigMap 재생성"
+# [2] Delete and recreate ConfigMap
+echo "[2/6] Recreating ConfigMap from initial SQL (database_dump.sql)"
 kubectl delete configmap mysql-initdb -n $NAMESPACE --ignore-not-found
 if [ ! -f "$INIT_SQL_PATH" ]; then
-  echo "❌ 파일이 존재하지 않습니다: $INIT_SQL_PATH"
-  echo "   현재 작업 디렉토리: $(pwd)"
+  echo "❌ File not found: $INIT_SQL_PATH"
+  echo "   Current working directory: $(pwd)"
   exit 1
 fi
 kubectl create configmap mysql-initdb \
   --from-file=init.sql=$INIT_SQL_PATH \
   -n $NAMESPACE
 
-# [3] Helm Repo 등록
-echo "[3/6] Helm 리포지토리 등록"
+# [3] Add Helm repo
+echo "[3/6] Registering Helm repository"
 helm repo add $REPO_NAME $REPO_URL || true
 helm repo update
 
-# [4] values-mysql.yaml 생성
-echo "[4/6] values-mysql.yaml 자동 생성"
+# [4] Create values-mysql.yaml
+echo "[4/6] Generating values-mysql.yaml"
 cat <<EOF > values-mysql.yaml
 fullnameOverride: $DB_HOST
 
@@ -77,38 +77,38 @@ primary:
 initdbScriptsConfigMap: mysql-initdb
 EOF
 
-# [5] Helm Chart 설치
-echo "[5/6] MySQL8 설치 중..."
+# [5] Install Helm Chart
+echo "[5/6] Installing MySQL8..."
 helm upgrade --install $RELEASE_NAME $CHART_NAME \
   --namespace $NAMESPACE \
   -f values-mysql.yaml
 
-# [6] 결과 출력
+# [6] Print result
 echo ""
-echo "✅ MySQL8 설치 완료!"
-echo "📛 DB 이름: $DB_NAME"
-echo "👤 사용자: $DB_USER"
-echo "🔐 비밀번호: $DB_PASSWORD"
-echo "🛰️ 접속 호스트: <워커노드 퍼블릭 IP>:31060"
-echo "    또는 내부에서는: $DB_HOST.$NAMESPACE.svc.cluster.local:3306"
+echo "✅ MySQL8 installation complete!"
+echo "📛 Database name: $DB_NAME"
+echo "👤 User: $DB_USER"
+echo "🔐 Password: $DB_PASSWORD"
+echo "🛰️ Connection host: <Worker Node Public IP>:31060"
+echo "     Or internally: $DB_HOST.$NAMESPACE.svc.cluster.local:3306"
 echo ""
 kubectl get svc -n $NAMESPACE
 
-# [7] Pod 상태 확인
-echo "⏳ MySQL Pod가 준비될 때까지 대기 중..."
+# [7] Wait for pod to be ready
+echo "⏳ Waiting for MySQL Pod to become ready..."
 if ! kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=$DB_HOST -n $NAMESPACE --timeout=90s; then
-  echo "⚠️ Pod가 준비되지 않았습니다. 아래 명령어로 상태를 점검하세요:"
+  echo "⚠️ Pod is not ready. Check the status with the commands below:"
   echo "   kubectl describe pod -n $NAMESPACE -l app.kubernetes.io/instance=$DB_HOST"
   echo "   kubectl logs -n $NAMESPACE pod/$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/instance=$DB_HOST -o jsonpath='{.items[0].metadata.name}')"
 fi
 
-# [8] 노드 정보 출력
+# [8] Show node info
 POD_NAME=$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/instance=$DB_HOST -o jsonpath="{.items[0].metadata.name}")
 NODE_NAME=$(kubectl get pod $POD_NAME -n $NAMESPACE -o jsonpath="{.spec.nodeName}")
 NODE_IP=$(kubectl get node $NODE_NAME -o jsonpath="{.status.addresses[?(@.type==\"InternalIP\")].address}")
 POD_IP=$(kubectl get pod $POD_NAME -n $NAMESPACE -o jsonpath="{.status.podIP}")
 
-echo "📍 MySQL Pod가 배치된 노드: $NODE_NAME ($NODE_IP)"
-echo "🔗 MySQL Pod 이름: $POD_NAME"
+echo "📍 MySQL Pod is running on node: $NODE_NAME ($NODE_IP)"
+echo "🔗 MySQL Pod name: $POD_NAME"
 echo "🔗 MySQL Pod IP: $POD_IP"
-echo "🔗 MySQL 서비스 이름: $DB_HOST"
+echo "🔗 MySQL Service name: $DB_HOST"

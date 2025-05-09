@@ -1,5 +1,2 @@
-# 해당 경로에 인증서가 있어야 합니다.
-# 인증서는 아래의 이름이어야 합니다.
-
-server.all.crt.pem
-certs/server.key.pem
+This folder is used to store SSL certificates.
+Save the certificate files as server.crt.pem and server.key.pem, and the install_ingress-nginx.sh script will automatically read them from this folder when setting up Ingress.
